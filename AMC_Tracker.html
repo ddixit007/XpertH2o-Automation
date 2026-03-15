@@ -875,12 +875,33 @@ function setSheetError(msg) {
   if (!el) return;
   el.textContent = msg; el.style.display = msg ? 'block' : 'none';
 }
-async function fetchSheetData(url) {
-  const r = await fetch(url, { redirect: 'follow' });
-  if (!r.ok) throw new Error(r.status);
-  const data = await r.json();
-  if (!Array.isArray(data)) throw new Error('Expected array from Apps Script');
-  return data;
+function fetchSheetData(url) {
+  // JSONP — avoids CORS issues with Apps Script redirects
+  return new Promise(function(resolve, reject) {
+    const cbName = '_xh2o_cb_' + Date.now();
+    const script = document.createElement('script');
+    let done = false;
+    const timer = setTimeout(function() {
+      if (done) return; done = true;
+      cleanup(); reject(new Error('Timeout — Apps Script took too long'));
+    }, 15000);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) document.head.removeChild(script);
+    }
+    window[cbName] = function(data) {
+      if (done) return; done = true;
+      cleanup();
+      Array.isArray(data) ? resolve(data) : reject(new Error('Invalid response from Apps Script'));
+    };
+    script.onerror = function() {
+      if (done) return; done = true;
+      cleanup(); reject(new Error('Script load failed'));
+    };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    document.head.appendChild(script);
+  });
 }
 async function connectSheet(urlOverride) {
   const input = document.getElementById('sheetUrlInput');
@@ -938,10 +959,10 @@ function disconnectSheet(e) {
 }
 function showSheetSetup() {
   const code =
-`function doGet() {
+`function doGet(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   var data  = sheet.getDataRange().getValues();
-  if (data.length < 2) return resp([]);
+  if (data.length < 2) return resp([], e);
   var headers = data[0].map(function(h){ return String(h).trim(); });
   var rows = data.slice(1)
     .filter(function(r){ return r.some(function(c){ return c !== ''; }); })
@@ -950,11 +971,16 @@ function showSheetSetup() {
       headers.forEach(function(h,i){ obj[h] = row[i] !== undefined ? String(row[i]) : ''; });
       return obj;
     });
-  return resp(rows);
+  return resp(rows, e);
 }
-function resp(d) {
-  return ContentService
-    .createTextOutput(JSON.stringify(d))
+function resp(d, e) {
+  var json = JSON.stringify(d);
+  var cb = e && e.parameter && e.parameter.callback;
+  if (cb) {
+    return ContentService.createTextOutput(cb + '(' + json + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
 }`;
   document.getElementById('sheetSetupBody').innerHTML = `
@@ -968,6 +994,7 @@ function resp(d) {
     </ol>
     <pre>${code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
     <p style="font-size:12px;color:#64748b">⚠️ Google will ask you to authorise the script once — click <em>Review Permissions → Allow</em>.</p>
+    <p style="font-size:12px;color:#64748b">⚠️ If you already deployed an older version, go to <strong>Deploy → Manage deployments</strong> → edit the existing deployment → click <strong>Deploy</strong> to push the updated code.</p>
     <p style="font-size:12px;color:#64748b">Your sheet must have the same column headers as the expected CSV format.</p>`;
   document.getElementById('sheetSetupModal').style.display = 'flex';
 }
