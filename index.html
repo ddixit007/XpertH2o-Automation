@@ -79,6 +79,22 @@ header p{font-size:11px;opacity:.8;margin-top:2px}
 .col-hint{margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px}
 .col-hint p{font-size:12px;color:var(--muted);line-height:1.8;font-family:monospace}
 .col-hint strong{display:block;font-size:12px;color:#475569;margin-bottom:5px;font-family:sans-serif}
+/* UPLOAD TABS */
+.upload-tabs{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.utab{padding:8px 20px;border:2px solid #cbd5e1;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#f8fafc;color:#64748b;transition:.15s}
+.utab:hover{border-color:var(--blue);color:var(--blue)}
+.utab.utab-active{background:var(--blue);border-color:var(--blue);color:#fff}
+.sheet-connect-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+.sheet-url-input{flex:1;min-width:220px;max-width:400px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:13px;color:#334155;outline:none}
+.sheet-url-input:focus{border-color:var(--blue)}
+.sheet-error{color:#dc2626;font-size:12px;margin-top:8px;display:none}
+.sheet-setup-link{font-size:12px;color:var(--muted);margin-top:12px;display:inline-block;cursor:pointer;text-decoration:underline}
+/* SHEET SETUP MODAL */
+.sheet-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9000;padding:16px}
+.sheet-modal-box{background:#fff;border-radius:16px;padding:28px;max-width:600px;width:100%;max-height:88vh;overflow-y:auto;position:relative}
+.sheet-modal-close{position:absolute;top:14px;right:16px;font-size:22px;cursor:pointer;color:#94a3b8;border:none;background:none;line-height:1}
+.sheet-modal-box pre{background:#1e293b;color:#e2e8f0;padding:14px 16px;border-radius:10px;font-size:11.5px;overflow-x:auto;white-space:pre;line-height:1.6;margin:12px 0}
+.sheet-modal-box ol{font-size:14px;line-height:2.1;padding-left:20px;color:#334155}
 
 /* MAIN */
 .main{max-width:1200px;margin:0 auto;padding:14px 16px 40px;display:none}
@@ -364,18 +380,43 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 <!-- Upload Screen -->
 <div class="upload-wrap" id="uploadSection">
   <div class="upload-card" id="dropZone">
-    <div class="uc-icon">📂</div>
-    <h2>Upload Customer CSV</h2>
-    <p>Drop CSV files here or click to browse.<br>Everything works fully offline.</p>
-    <div style="margin-top:4px">
-      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📁 Choose CSV File</button>
-      <button class="btn-demo" onclick="loadDemo()">▶ Sample Data</button>
+    <div class="upload-tabs">
+      <button class="utab utab-active" id="utab-csv" onclick="switchUploadTab('csv')">📁 CSV Upload</button>
+      <button class="utab" id="utab-sheet" onclick="switchUploadTab('sheet')">📊 Google Sheet</button>
+    </div>
+    <div id="utab-csv-body">
+      <div class="uc-icon">📂</div>
+      <h2>Upload Customer CSV</h2>
+      <p>Drop CSV files here or click to browse.<br>Everything works fully offline.</p>
+      <div style="margin-top:4px">
+        <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📁 Choose CSV File</button>
+        <button class="btn-demo" onclick="loadDemo()">▶ Sample Data</button>
+      </div>
+    </div>
+    <div id="utab-sheet-body" style="display:none">
+      <div class="uc-icon">📊</div>
+      <h2>Connect Google Sheet</h2>
+      <p>Paste your Apps Script Web App URL.<br>Team edits the sheet — tracker reads live data.</p>
+      <div class="sheet-connect-row">
+        <input id="sheetUrlInput" class="sheet-url-input" type="text" placeholder="https://script.google.com/macros/s/…/exec">
+        <button class="btn-primary" style="margin-top:0" onclick="connectSheet()">Connect</button>
+      </div>
+      <div id="sheetConnectError" class="sheet-error"></div>
+      <span class="sheet-setup-link" onclick="showSheetSetup()">How to get the Apps Script URL →</span>
     </div>
     <input type="file" id="fileInput" accept=".csv" multiple>
   </div>
   <div class="col-hint">
-    <strong>Expected CSV columns (in any order):</strong>
+    <strong>Expected columns (in any order):</strong>
     <p>Customer Name · Phone Number · Area · Install Date · AMC Duration (months) · Product · AMC Amount (₹) · Payment Status · Last Service Date · Service Calls (lifetime) · Notes</p>
+  </div>
+</div>
+
+<!-- Google Sheet Setup Modal -->
+<div class="sheet-modal-overlay" id="sheetSetupModal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="sheet-modal-box">
+    <button class="sheet-modal-close" onclick="document.getElementById('sheetSetupModal').style.display='none'">✕</button>
+    <div id="sheetSetupBody"></div>
   </div>
 </div>
 
@@ -564,6 +605,7 @@ let contactStatus = {};      // {"fileId|custKey": status}
 let rowEdits      = {};      // {"fileId|name|phone": {field:val,...}}
 let renewalHistory= {};      // {"fileId|name|phone": [{ts,date,duration,amount}]}
 let activityLog   = {};      // {"fileId|name|phone": [{ts,type,text}]}
+let sheetUrl      = '';      // Google Apps Script Web App URL (if connected)
 let groupByArea   = false;
 let calFilterMonth = null;   // null or "YYYY-MM" string
 let _nextId       = 1;
@@ -650,6 +692,12 @@ async function initCloud() {
 // ════════════════════════════════════════════════
 // CSV PARSER
 // ════════════════════════════════════════════════
+function objectsToCSV(rows) {
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const esc = v => { const s = String(v ?? ''); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; };
+  return [headers.map(esc).join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))].join('\n');
+}
 function parseCSVLine(line) {
   const out = []; let cur = '', inQ = false;
   for (let i = 0; i < line.length; i++) {
@@ -763,7 +811,7 @@ function custKey(c) { return `${c['Customer Name']}|${c['Phone Number']}`; }
 // ════════════════════════════════════════════════
 function saveFiles() {
   try {
-    cloudSet('xh2o_files',     JSON.stringify(files.map(f => ({id:f.id,name:f.name,csvText:f.csvText}))));
+    cloudSet('xh2o_files',     JSON.stringify(files.map(f => ({id:f.id,name:f.name,csvText:f.csvText,_isSheet:f._isSheet||false}))));
     cloudSet('xh2o_activeIdx', String(activeIdx));
   } catch(e) { showToast('⚠️ Storage full – session only'); }
 }
@@ -793,13 +841,15 @@ function loadStoredData() {
     const se = localStorage.getItem('xh2o_edits');    if (se) rowEdits = JSON.parse(se);
     const sr = localStorage.getItem('xh2o_renewals'); if (sr) renewalHistory = JSON.parse(sr);
     const sl = localStorage.getItem('xh2o_log');      if (sl) activityLog    = JSON.parse(sl);
+    const su = localStorage.getItem('xh2o_sheet_url');if (su) sheetUrl = su;
     const sf = localStorage.getItem('xh2o_files');
     if (!sf) return;
     const data = JSON.parse(sf);
     if (!data.length) return;
     data.forEach(f => {
-      const customers = processRaw(parseCSV(f.csvText), f.id);
-      files.push({ id:f.id, name:f.name, csvText:f.csvText, customers });
+      const raw = f.csvText ? parseCSV(f.csvText) : [];
+      const customers = processRaw(raw, f.id);
+      files.push({ id:f.id, name:f.name, csvText:f.csvText, customers, _isSheet:f._isSheet||false });
       _nextId = Math.max(_nextId, f.id + 1);
     });
     const si = parseInt(localStorage.getItem('xh2o_activeIdx'));
@@ -812,18 +862,132 @@ function loadStoredData() {
 }
 
 // ════════════════════════════════════════════════
+// GOOGLE SHEET INTEGRATION
+// ════════════════════════════════════════════════
+function switchUploadTab(tab) {
+  document.getElementById('utab-csv-body').style.display   = tab === 'csv'   ? '' : 'none';
+  document.getElementById('utab-sheet-body').style.display = tab === 'sheet' ? '' : 'none';
+  document.getElementById('utab-csv').classList.toggle('utab-active',   tab === 'csv');
+  document.getElementById('utab-sheet').classList.toggle('utab-active', tab === 'sheet');
+}
+function setSheetError(msg) {
+  const el = document.getElementById('sheetConnectError');
+  if (!el) return;
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+async function fetchSheetData(url) {
+  const r = await fetch(url, { redirect: 'follow' });
+  if (!r.ok) throw new Error(r.status);
+  const data = await r.json();
+  if (!Array.isArray(data)) throw new Error('Expected array from Apps Script');
+  return data;
+}
+async function connectSheet(urlOverride) {
+  const input = document.getElementById('sheetUrlInput');
+  const url = urlOverride || (input ? input.value.trim() : '');
+  if (!url) { showToast('⚠️ Paste the Apps Script URL first'); return; }
+  if (!url.includes('script.google.com')) { setSheetError('Doesn\'t look like an Apps Script URL'); return; }
+  setSheetError('');
+  showToast('🔄 Connecting to sheet…');
+  try {
+    const data = await fetchSheetData(url);
+    if (!data.length) { setSheetError('Sheet returned no rows — check the Apps Script'); return; }
+    sheetUrl = url;
+    cloudSet('xh2o_sheet_url', url);
+    files = files.filter(f => !f._isSheet);
+    addFile(data, '📊 Google Sheet', null, true);
+  } catch(e) {
+    setSheetError('Connection failed. Make sure the Web App is deployed as "Anyone" access.');
+    showToast('⚠️ Could not connect to sheet');
+  }
+}
+async function refreshSheet(e) {
+  if (e) e.stopPropagation();
+  if (!sheetUrl) return;
+  showToast('🔄 Refreshing from Google Sheet…');
+  try {
+    const data = await fetchSheetData(sheetUrl);
+    if (!data.length) { showToast('⚠️ Sheet is empty'); return; }
+    files = files.filter(f => !f._isSheet);
+    addFile(data, '📊 Google Sheet', null, true);
+    showToast('✅ Sheet refreshed — ' + data.length + ' customers');
+  } catch(e) {
+    showToast('⚠️ Refresh failed — check connection');
+  }
+}
+function disconnectSheet(e) {
+  if (e) e.stopPropagation();
+  sheetUrl = '';
+  cloudRemove('xh2o_sheet_url');
+  localStorage.removeItem('xh2o_sheet_url');
+  const idx = files.findIndex(f => f._isSheet);
+  if (idx >= 0) {
+    files.splice(idx, 1);
+    if (!files.length) {
+      activeIdx = -2; customers = [];
+      document.getElementById('fileBar').style.display = 'none';
+      document.getElementById('uploadSection').style.display = 'block';
+      document.getElementById('mainContent').style.display = 'none';
+    } else {
+      if (activeIdx >= files.length) activeIdx = files.length - 1;
+      syncCustomers(); renderFileBar(); renderAll();
+    }
+    saveFiles();
+  }
+  showToast('🔌 Google Sheet disconnected');
+}
+function showSheetSetup() {
+  const code =
+`function doGet() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var data  = sheet.getDataRange().getValues();
+  if (data.length < 2) return resp([]);
+  var headers = data[0].map(function(h){ return String(h).trim(); });
+  var rows = data.slice(1)
+    .filter(function(r){ return r.some(function(c){ return c !== ''; }); })
+    .map(function(row){
+      var obj = {};
+      headers.forEach(function(h,i){ obj[h] = row[i] !== undefined ? String(row[i]) : ''; });
+      return obj;
+    });
+  return resp(rows);
+}
+function resp(d) {
+  return ContentService
+    .createTextOutput(JSON.stringify(d))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+  document.getElementById('sheetSetupBody').innerHTML = `
+    <h3 style="margin-bottom:14px;font-size:17px">📊 Connect a Google Sheet (3 steps)</h3>
+    <ol>
+      <li>Open your Google Sheet → <strong>Extensions → Apps Script</strong></li>
+      <li>Delete any existing code, paste the script below, click <strong>Save</strong></li>
+      <li>Click <strong>Deploy → New deployment</strong><br>
+          &nbsp;&nbsp;Type: <em>Web App</em> &nbsp;·&nbsp; Execute as: <em>Me</em> &nbsp;·&nbsp; Who has access: <em>Anyone</em><br>
+          &nbsp;&nbsp;Click <strong>Deploy</strong> → copy the <strong>Web App URL</strong></li>
+    </ol>
+    <pre>${code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    <p style="font-size:12px;color:#64748b">⚠️ Google will ask you to authorise the script once — click <em>Review Permissions → Allow</em>.</p>
+    <p style="font-size:12px;color:#64748b">Your sheet must have the same column headers as the expected CSV format.</p>`;
+  document.getElementById('sheetSetupModal').style.display = 'flex';
+}
+
+// ════════════════════════════════════════════════
 // FILE MANAGEMENT
 // ════════════════════════════════════════════════
-function addFile(raw, name, csvText) {
+function addFile(raw, name, csvText, isSheet) {
   if (!raw.length) { showToast(`⚠️ "${name}" is empty`); return; }
   let label = name.replace(/\.csv$/i,'');
-  const existing = files.map(f=>f.name);
-  if (existing.includes(label)) { let n=2; while(existing.includes(`${label} (${n})`)) n++; label=`${label} (${n})`; }
+  if (!isSheet) {
+    const existing = files.map(f=>f.name);
+    if (existing.includes(label)) { let n=2; while(existing.includes(`${label} (${n})`)) n++; label=`${label} (${n})`; }
+  }
+  const storedCsv = csvText || (isSheet ? objectsToCSV(raw) : null);
   const id = _nextId++;
-  files.push({ id, name:label, csvText, customers: processRaw(raw, id) });
+  files.push({ id, name:label, csvText:storedCsv, customers: processRaw(raw, id), _isSheet:!!isSheet });
   switchFile(files.length - 1);
   saveFiles();
-  showToast(`📄 "${label}" loaded — ${files[files.length-1].customers.length} customers`);
+  showToast(`${isSheet?'📊':'📄'} "${label}" loaded — ${files[files.length-1].customers.length} customers`);
 }
 function switchFile(idx) {
   activeIdx = idx;
@@ -911,8 +1075,9 @@ function renderFileBar() {
   let html = showAll ? `<div class="fchip all-chip ${activeIdx===-1?'active':''}" onclick="switchAllFiles()" title="View all files merged">🗂 All Files</div>` : '';
   html += files.map((f,i) => `
     <div class="fchip ${i===activeIdx?'active':''}" onclick="switchFile(${i})" title="${esc(f.name)}">
-      <span class="fchip-name">📄 ${esc(f.name)}</span>
-      <button class="fchip-close" onclick="removeFile(${i},event)">✕</button>
+      <span class="fchip-name">${f._isSheet?'📊':'📄'} ${esc(f.name)}</span>
+      ${f._isSheet ? `<button class="fchip-close" onclick="refreshSheet(event)" title="Refresh from Google Sheet" style="opacity:1;font-size:13px">🔄</button>` : ''}
+      <button class="fchip-close" onclick="${f._isSheet?'disconnectSheet(event)':'removeFile('+i+',event)'}" title="${f._isSheet?'Disconnect sheet':'Remove file'}">✕</button>
     </div>`).join('');
   document.getElementById('fileChips').innerHTML = html;
   const total = files.reduce((s,f)=>s+f.customers.length,0);
@@ -1686,6 +1851,10 @@ function loadDemo() {
 // ════════════════════════════════════════════════
 loadStoredData();
 initCloud();
+// Auto-refresh Google Sheet in background after local data loads
+if (sheetUrl) setTimeout(() => refreshSheet(), 1200);
+// Periodic auto-refresh every 5 minutes while page is open
+setInterval(() => { if (sheetUrl) refreshSheet(); }, 5 * 60 * 1000);
 </script>
 </body>
 </html>
