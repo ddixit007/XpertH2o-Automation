@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XpertH2O – AMC Renewal Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1565c0;--blue-d:#0d47a1;--blue-l:#e3f2fd;
+  --red:#c62828;--red-l:#ffebee;
+  --amber:#e65100;--amber-l:#fff3e0;
+  --green:#2e7d32;--green-l:#e8f5e9;
+  --border:#e0e0e0;--bg:#f0f4f8;--white:#fff;
+  --text:#1a1a2e;--muted:#607d8b;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#1565c0,#0277bd);color:#fff;padding:13px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);position:sticky;top:0;z-index:200}
+.hd-left{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+header h1{font-size:17px;font-weight:700;line-height:1.2}
+header p{font-size:11px;opacity:.8;margin-top:2px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:#323232;color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;
+  font-weight:600;z-index:999;transition:transform .3s ease;pointer-events:none;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* FILE BAR */
+#fileBar{background:#fff;border-bottom:1px solid var(--border);padding:9px 16px;
+  display:none;position:sticky;top:66px;z-index:150;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.fb-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fb-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.fb-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.fchip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 12px;border-radius:20px;
+  background:#f1f5f9;border:1.5px solid #cbd5e1;font-size:13px;font-weight:600;color:#334155;
+  cursor:pointer;transition:.2s;max-width:210px}
+.fchip:hover{background:#e2e8f0;border-color:#94a3b8}
+.fchip.active{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+.fchip.all-chip{background:#fdf4ff;border-color:#d8b4fe;color:#7c3aed}
+.fchip.all-chip.active{background:#ede9fe;border-color:#7c3aed;color:#5b21b6}
+.fchip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+.fchip-close{width:17px;height:17px;border:none;background:none;color:inherit;font-size:13px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.55;
+  flex-shrink:0;padding:0;font-weight:700;border-radius:50%}
+.fchip-close:hover{opacity:1;background:rgba(0,0,0,.12)}
+.btn-add-file{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;
+  background:none;border:1.5px dashed #94a3b8;font-size:13px;font-weight:600;color:var(--muted);
+  cursor:pointer;transition:.2s;white-space:nowrap;flex-shrink:0}
+.btn-add-file:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.fb-count{font-size:12px;color:var(--muted);background:#f1f5f9;padding:4px 10px;border-radius:12px;flex-shrink:0;white-space:nowrap}
+
+/* UPLOAD */
+.upload-wrap{max-width:680px;margin:40px auto;padding:0 16px}
+.upload-card{background:#fff;border:2.5px dashed #90caf9;border-radius:16px;padding:36px 28px;
+  text-align:center;cursor:pointer;transition:.2s}
+.upload-card:hover,.upload-card.drag{background:var(--blue-l);border-color:var(--blue)}
+.upload-card .uc-icon{font-size:48px;margin-bottom:12px}
+.upload-card h2{color:var(--blue);font-size:19px;margin-bottom:7px}
+.upload-card p{color:var(--muted);font-size:14px;line-height:1.6}
+#fileInput{display:none}
+.btn-primary{display:inline-block;margin-top:16px;padding:10px 24px;background:var(--blue);
+  color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.2s}
+.btn-primary:hover{background:var(--blue-d)}
+.btn-demo{display:inline-block;margin-top:8px;margin-left:8px;padding:10px 20px;background:#f1f5f9;
+  color:#334155;border:1.5px solid #cbd5e1;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-demo:hover{background:#e2e8f0}
+.col-hint{margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px}
+.col-hint p{font-size:12px;color:var(--muted);line-height:1.8;font-family:monospace}
+.col-hint strong{display:block;font-size:12px;color:#475569;margin-bottom:5px;font-family:sans-serif}
+
+/* MAIN */
+.main{max-width:1200px;margin:0 auto;padding:14px 16px 40px;display:none}
+
+/* SUMMARY PILLS */
+.summary-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.pill{padding:7px 16px;border-radius:20px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;
+  border:2px solid transparent;transition:all .15s}
+.pill.clickable{cursor:pointer;user-select:none}
+.pill.clickable:hover{filter:brightness(.93);transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.pill.pill-active{border-color:currentColor;box-shadow:0 0 0 3px rgba(0,0,0,.08);transform:translateY(-1px)}
+.pill-red{background:var(--red-l);color:var(--red)}
+.pill-amber{background:var(--amber-l);color:var(--amber)}
+.pill-green{background:var(--green-l);color:var(--green)}
+.pill-purple{background:#f3e5f5;color:#6a1b9a}
+.pill-gray{background:#e8eaf6;color:#283593}
+.pill-orange{background:#fff8e1;color:#f57f17}
+
+/* TABS */
+.tabs{display:flex;gap:3px;border-bottom:2px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{padding:9px 17px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;
+  font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:.2s;white-space:nowrap;border-radius:6px 6px 0 0}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-l)}
+.pane{display:none}
+.pane.on{display:block}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.filter-bar input,.filter-bar select{padding:7px 11px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:13px;background:#fff;color:var(--text);outline:none;transition:.2s}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--blue)}
+.filter-bar input{flex:1;min-width:150px}
+.btn-sm{padding:7px 13px;border-radius:8px;border:1.5px solid var(--border);background:#fff;
+  font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:.2s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.btn-sm:hover{border-color:var(--blue);color:var(--blue)}
+.btn-sm.on{background:var(--blue-l);border-color:var(--blue);color:var(--blue)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}
+th{background:#37474f;color:#fff;padding:11px 13px;text-align:left;font-size:12px;white-space:nowrap;font-weight:700;letter-spacing:.2px}
+td{padding:10px 13px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.r-red{background:#fff5f5}
+tr.r-amber{background:#fffbf0}
+tr.r-green{background:#f6fff6}
+tr.r-orange{background:#fff8f0}
+tr.r-red:hover{background:#ffecec}
+tr.r-amber:hover{background:#fff3dc}
+tr.r-green:hover{background:#ecf9ec}
+tr.r-orange:hover{background:#ffedd5}
+tr.area-hdr td{background:#eceff1;font-weight:700;font-size:12px;color:#455a64;padding:8px 13px;letter-spacing:.3px}
+tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--muted);padding:7px 13px;border-top:1px solid #ddd}
+
+/* BADGES */
+.bdg{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.bdg-red{background:var(--red);color:#fff}
+.bdg-amber{background:var(--amber);color:#fff}
+.bdg-green{background:var(--green);color:#fff}
+.bdg-orange{background:#e64a00;color:#fff}
+.bdg-paid{background:#00695c;color:#fff}
+.bdg-unpaid{background:#6a1b9a;color:#fff}
+.bdg-svc{background:#f57f17;color:#fff}
+
+/* ACTION CARDS */
+.ac{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  border-left:5px solid var(--border);box-shadow:0 1px 5px rgba(0,0,0,.07);transition:opacity .2s}
+.ac.ov{border-left-color:var(--red)}
+.ac.lp{border-left-color:#e64a00}
+.ac.ds{border-left-color:var(--amber)}
+.ac.st-confirmed{border-left-color:var(--green);opacity:.75}
+.ac.st-noreply{opacity:.5}
+.ac-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.ac-info h3{font-size:15px;font-weight:700;display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.meta{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.7}
+.ac-btns{display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;margin-top:3px}
+.unpaid-note{font-size:12px;color:#6a1b9a;background:#f9f0ff;padding:6px 11px;border-radius:7px;margin-top:8px;border-left:3px solid #6a1b9a}
+
+/* CONTACT STATUS */
+.status-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0}
+.s-btn{padding:4px 10px;border-radius:14px;border:1.5px solid var(--border);background:#fff;
+  font-size:11px;font-weight:700;cursor:pointer;transition:.15s;color:var(--muted)}
+.s-btn:hover{border-color:#94a3b8}
+.s-btn.on-called{background:#e3f2fd;border-color:var(--blue);color:var(--blue)}
+.s-btn.on-wa{background:#e8f5e9;border-color:#25d366;color:#1b5e20}
+.s-btn.on-confirmed{background:var(--green-l);border-color:var(--green);color:var(--green)}
+.s-btn.on-noreply{background:#f5f5f5;border-color:#bdbdbd;color:#757575}
+.status-label{font-size:11px;font-weight:700;color:var(--muted);align-self:center;margin-right:2px}
+
+/* BULK BAR */
+.bulk-bar{background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:12px;
+  box-shadow:0 1px 5px rgba(0,0,0,.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.bulk-bar p{font-size:13px;color:var(--muted)}
+.bulk-btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* MSG CARDS */
+.mc{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.07)}
+.mc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.mc-top h3{font-size:14px;font-weight:700}
+.mc-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.msg-box{background:#f0fdf4;border-left:4px solid #25d366;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap}
+.mc-btns{display:flex;gap:7px;flex-wrap:wrap}
+
+/* BUTTONS */
+.btn-copy{padding:6px 13px;background:var(--blue);color:#fff;border:none;border-radius:7px;
+  font-size:12px;font-weight:700;cursor:pointer;transition:.2s;white-space:nowrap}
+.btn-copy:hover{background:var(--blue-d)}
+.btn-copy.ok{background:var(--green)}
+.btn-wa{padding:6px 13px;background:#25d366;color:#fff;border:none;border-radius:7px;
+  font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;
+  align-items:center;gap:4px;white-space:nowrap;transition:.2s}
+.btn-wa:hover{background:#128c7e}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.empty .ei{font-size:48px;margin-bottom:12px}
+.empty p{font-size:15px;font-weight:600}
+.empty small{font-size:13px;display:block;margin-top:5px}
+
+/* ANALYTICS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-top:4px solid var(--border)}
+.kpi.k-red{border-top-color:var(--red)}
+.kpi.k-amber{border-top-color:var(--amber)}
+.kpi.k-green{border-top-color:var(--green)}
+.kpi.k-blue{border-top-color:var(--blue)}
+.kpi.k-purple{border-top-color:#7c3aed}
+.kpi-val{font-size:24px;font-weight:800;color:var(--text);line-height:1}
+.kpi-label{font-size:12px;color:var(--muted);margin-top:6px;font-weight:600}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.analytics-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:700px){.analytics-row{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 5px rgba(0,0,0,.07)}
+.card h3{font-size:14px;font-weight:700;margin-bottom:14px;color:#37474f}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-label{font-size:12px;font-weight:600;color:var(--text);width:110px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;background:#f1f5f9;border-radius:6px;height:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;transition:width .4s ease}
+.bar-fill.bf-red{background:var(--red)}
+.bar-fill.bf-amber{background:var(--amber)}
+.bar-fill.bf-green{background:var(--green)}
+.bar-fill.bf-blue{background:var(--blue)}
+.bar-val{font-size:12px;font-weight:700;color:var(--text);width:80px;text-align:right;flex-shrink:0}
+.svc-alert-list .ac{margin-bottom:8px}
+
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:20px}
+.cal-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 5px rgba(0,0,0,.07);
+  cursor:pointer;transition:.2s;border-top:4px solid var(--border)}
+.cal-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.cal-card.has-ov{border-top-color:var(--red)}
+.cal-card.has-lp{border-top-color:#e64a00}
+.cal-card.has-ds{border-top-color:var(--amber)}
+.cal-card.has-active{border-top-color:var(--green)}
+.cal-card.empty-m{border-top-color:#cfd8dc;opacity:.7}
+.cal-card.active-m{box-shadow:0 0 0 2px var(--blue)!important}
+.cal-month{font-size:13px;font-weight:700;color:#37474f}
+.cal-count{font-size:26px;font-weight:800;margin:6px 0 4px;color:var(--text)}
+.cal-breakdown{font-size:11px;color:var(--muted);line-height:1.7}
+.cal-revenue{font-size:12px;font-weight:700;color:var(--green);margin-top:4px}
+
+/* CNAME */
+.cname{font-weight:700}
+.dl-red{color:var(--red);font-weight:700}
+.dl-amber{color:var(--amber);font-weight:700}
+.dl-green{color:var(--green);font-weight:700}
+.src-tag{font-size:10px;background:#ede9fe;color:#5b21b6;border-radius:10px;padding:2px 7px;font-weight:700}
+
+/* PRINT */
+@media print{
+  #fileBar,#toast,.tabs,.filter-bar,.bulk-bar,.btn-copy,.btn-wa,.ac-btns,.status-row,
+  .btn-sm,.upload-wrap,.pane:not(.on){display:none!important}
+  header{background:#1565c0;-webkit-print-color-adjust:exact;print-color-adjust:exact;position:static}
+  .main{padding:0;display:block!important}
+  .summary-bar{margin-bottom:10px}
+  body{background:#fff}
+  .tbl-wrap{box-shadow:none}
+  table{font-size:11px}
+  th{background:#37474f!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media(max-width:640px){
+  header h1{font-size:15px}
+  .tab{padding:8px 11px;font-size:12px}
+  th,td{padding:8px 9px;font-size:12px}
+  .ac-top{flex-direction:column}
+  #fileBar{top:62px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-left">
+    <div class="logo">💧</div>
+    <div>
+      <h1>XpertH2O – AMC Tracker</h1>
+      <p>Annual Maintenance Contract Renewals · Surat, Gujarat</p>
+    </div>
+  </div>
+</header>
+<div id="toast"></div>
+
+<!-- File Switcher Bar -->
+<div id="fileBar">
+  <div class="fb-inner">
+    <span class="fb-label">Files</span>
+    <div class="fb-chips" id="fileChips"></div>
+    <button class="btn-add-file" onclick="document.getElementById('fileInput').click()">＋ Add File</button>
+    <span class="fb-count" id="fbCount"></span>
+  </div>
+</div>
+
+<!-- Upload Screen -->
+<div class="upload-wrap" id="uploadSection">
+  <div class="upload-card" id="dropZone">
+    <div class="uc-icon">📂</div>
+    <h2>Upload Customer CSV</h2>
+    <p>Drop CSV files here or click to browse.<br>Everything works fully offline.</p>
+    <div style="margin-top:4px">
+      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📁 Choose CSV File</button>
+      <button class="btn-demo" onclick="loadDemo()">▶ Sample Data</button>
+    </div>
+    <input type="file" id="fileInput" accept=".csv" multiple>
+  </div>
+  <div class="col-hint">
+    <strong>Expected CSV columns (in any order):</strong>
+    <p>Customer Name · Phone Number · Area · Install Date · AMC Duration (months) · Product · AMC Amount (₹) · Payment Status · Last Service Date · Service Calls (lifetime) · Notes</p>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main" id="mainContent">
+  <div class="summary-bar" id="summaryBar"></div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('dash',this)">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('action',this)">⚡ Action List</button>
+    <button class="tab" onclick="switchTab('msg',this)">💬 WhatsApp</button>
+    <button class="tab" onclick="switchTab('analytics',this)">📈 Analytics</button>
+    <button class="tab" onclick="switchTab('calendar',this)">📅 Calendar</button>
+  </div>
+
+  <!-- TAB 1: Dashboard -->
+  <div class="pane on" id="pane-dash">
+    <div class="filter-bar">
+      <input type="text" id="dsearch" placeholder="Search name or area…" oninput="renderDash()">
+      <select id="dstatus" onchange="renderDash()">
+        <option value="">All Status</option>
+        <option value="Overdue">Overdue</option>
+        <option value="Lapsed">Lapsed</option>
+        <option value="Due Soon">Due Soon</option>
+        <option value="Active">Active</option>
+      </select>
+      <select id="dpay" onchange="renderDash()">
+        <option value="">All Payments</option>
+        <option value="unpaid">Unpaid</option>
+        <option value="paid">Paid</option>
+      </select>
+      <button class="btn-sm" id="btnGroup" onclick="toggleGroup()">⊞ Group by Area</button>
+      <button class="btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn-sm" onclick="window.print()">🖨 Print</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr id="dashHead"></tr></thead>
+        <tbody id="dashBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: Action List -->
+  <div class="pane" id="pane-action">
+    <div class="bulk-bar">
+      <p id="actionCount"></p>
+      <div class="bulk-btns">
+        <button class="btn-sm" onclick="bulkCopyMessages()">📋 Copy All Messages</button>
+        <button class="btn-sm" onclick="bulkCopyContacts()">📞 Copy Contact List</button>
+      </div>
+    </div>
+    <div id="actionList"></div>
+  </div>
+
+  <!-- TAB 3: WhatsApp Messages -->
+  <div class="pane" id="pane-msg">
+    <div class="bulk-bar">
+      <p id="msgCount"></p>
+      <div class="bulk-btns">
+        <button class="btn-sm" onclick="bulkCopyAllMsgs()">📋 Copy All Messages</button>
+      </div>
+    </div>
+    <div id="msgList"></div>
+  </div>
+
+  <!-- TAB 4: Analytics -->
+  <div class="pane" id="pane-analytics">
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="analytics-row">
+      <div class="card" id="areaCard"><h3>📍 Revenue by Area</h3><div id="areaChart"></div></div>
+      <div class="card" id="prodCard"><h3>🔧 Revenue by Product</h3><div id="prodChart"></div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <h3>📅 Upcoming Renewal Revenue (Next 12 Months)</h3>
+      <div id="monthChart" style="margin-top:4px"></div>
+    </div>
+    <div class="card" id="svcAlertCard">
+      <h3>⚠️ Service Overdue Alerts <span id="svcAlertCount" style="font-weight:400;color:var(--muted);font-size:12px"></span></h3>
+      <div id="svcAlertList" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: Calendar -->
+  <div class="pane" id="pane-calendar">
+    <div class="filter-bar" style="margin-bottom:16px">
+      <span style="font-size:13px;color:var(--muted)">Click a month to filter the Dashboard by due date</span>
+      <button class="btn-sm" onclick="clearCalFilter()" id="btnCalClear" style="display:none">✕ Clear Filter</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let files         = [];      // [{id, name, csvText, customers}]
+let activeIdx     = -2;      // -2=unset, -1=all files, ≥0=specific file
+let customers     = [];      // always synced to active selection
+let contactStatus = {};      // {"fileId|custKey": status}
+let groupByArea   = false;
+let calFilterMonth = null;   // null or "YYYY-MM" string
+let _nextId       = 1;
+const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+
+// ════════════════════════════════════════════════
+// CSV PARSER
+// ════════════════════════════════════════════════
+function parseCSVLine(line) {
+  const out = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (c === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur.trim());
+  return out;
+}
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const heads = parseCSVLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVLine(lines[i]);
+    if (vals.every(v => !v)) continue;
+    const row = {};
+    heads.forEach((h,j) => row[h.trim()] = (vals[j]||'').trim());
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ════════════════════════════════════════════════
+// DATE + AMOUNT UTILS
+// ════════════════════════════════════════════════
+function parseDate(s) {
+  if (!s||!s.trim()) return null; s = s.trim();
+  let m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  const d = new Date(s); return isNaN(d) ? null : d;
+}
+function addMonths(d, n) { const r = new Date(d); r.setMonth(r.getMonth()+(parseInt(n)||12)); return r; }
+function fmtDate(d) { if (!d) return '–'; return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function monthKey(d) { if (!d) return null; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function daysLeft(due) { return Math.round((due - TODAY) / 86400000); }
+function computeStatus(days, paid) {
+  if (days === null) return 'Unknown';
+  if (days < 0)  return paid ? 'Lapsed' : 'Overdue';   // past due: Lapsed if paid, Overdue if unpaid
+  if (days <= 30) return 'Due Soon';
+  return 'Active';
+}
+function parseAmount(s) { return parseFloat(String(s||'0').replace(/[₹,\s]/g,'')) || 0; }
+function fmtMoney(n) { return '₹' + n.toLocaleString('en-IN'); }
+function isUnpaid(c) { const s=(c['Payment Status']||'').toLowerCase(); return s.includes('unpaid')||s.includes('pending')||s==='no'; }
+
+// ════════════════════════════════════════════════
+// DATA PROCESSING
+// ════════════════════════════════════════════════
+const STATUS_ORDER = { Overdue:0, Lapsed:1, 'Due Soon':2, Active:3, Unknown:4 };
+function processRaw(raw, fileId) {
+  return raw.map(r => {
+    const inst    = parseDate(r['Install Date']);
+    const dur     = parseInt(r['AMC Duration (months)']) || 12;
+    const due     = inst ? addMonths(inst, dur) : null;
+    const days    = due ? daysLeft(due) : null;
+    const paid    = !isUnpaid(r);
+    const status  = computeStatus(days, paid);
+    const lastSvc = parseDate(r['Last Service Date']);
+    const svcDays = lastSvc ? Math.round((TODAY - lastSvc) / 86400000) : null;
+    const _serviceAlert = svcDays !== null && svcDays > 90 && status === 'Active';
+    return { ...r, _inst:inst, _due:due, _days:days, status, _svcDays:svcDays, _serviceAlert, _fileId:fileId };
+  }).sort((a,b) => {
+    const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    return od !== 0 ? od : (a._due && b._due ? a._due - b._due : 0);
+  });
+}
+
+// ════════════════════════════════════════════════
+// MESSAGE BUILDER
+// ════════════════════════════════════════════════
+function buildMsg(c) {
+  const name    = (c['Customer Name']||'Customer').trim();
+  const product = (c['Product']||'Water Purifier').trim();
+  const date    = fmtDate(c._due);
+  const expired = c.status === 'Overdue' || c.status === 'Lapsed';
+  let msg = `Namaste ${name} bhai/ben,\n\n`;
+  if (expired) {
+    msg += `Aapna *${product}* no AMC contract ${Math.abs(c._days)} din pehla (${date} na roj) expire thay gayo che. `;
+    msg += `Krupaya tarant renewal karavo jethithi aapna pani ni quality affect na thay.\n\nRenewal mate aaj j contact karo – jitnu jaldi, uttu saru! 🙏`;
+  } else {
+    msg += `Aapna *${product}* no AMC contract *${date}* na roj expire thavano che. `;
+    msg += `Renewal mate aaj j contact karo jethithi service uninterrupted rahe. 🙏`;
+  }
+  if (isUnpaid(c)) msg += `\n\n⚠️ *Payment Reminder:* Aapni AMC payment pan pending che. Renewal sathe payment clear karvanu yaad rakhjo.`;
+  msg += `\n\n— *Xpert H2O, Surat*`;
+  return msg.trim();
+}
+function waLink(phone, msg) {
+  const n = (phone||'').replace(/\D/g,'');
+  if (!n || n.length < 10) return null;
+  return `https://wa.me/${n.startsWith('91')?n:'91'+n}?text=${encodeURIComponent(msg)}`;
+}
+function custKey(c) { return `${c['Customer Name']}|${c['Phone Number']}`; }
+
+// ════════════════════════════════════════════════
+// LOCALSTORAGE
+// ════════════════════════════════════════════════
+function saveFiles() {
+  try {
+    localStorage.setItem('xh2o_files', JSON.stringify(files.map(f => ({id:f.id,name:f.name,csvText:f.csvText}))));
+    localStorage.setItem('xh2o_activeIdx', activeIdx);
+  } catch(e) { showToast('⚠️ Storage full – session only'); }
+}
+function saveStatuses() {
+  try { localStorage.setItem('xh2o_statuses', JSON.stringify(contactStatus)); } catch(e) {}
+}
+function loadStoredData() {
+  try {
+    const ss = localStorage.getItem('xh2o_statuses');
+    if (ss) contactStatus = JSON.parse(ss);
+    const sf = localStorage.getItem('xh2o_files');
+    if (!sf) return;
+    const data = JSON.parse(sf);
+    if (!data.length) return;
+    data.forEach(f => {
+      const customers = processRaw(parseCSV(f.csvText), f.id);
+      files.push({ id:f.id, name:f.name, csvText:f.csvText, customers });
+      _nextId = Math.max(_nextId, f.id + 1);
+    });
+    const si = parseInt(localStorage.getItem('xh2o_activeIdx'));
+    activeIdx = isNaN(si) ? 0 : si;
+    if (activeIdx < -1 || activeIdx >= files.length) activeIdx = 0;
+    syncCustomers();
+    renderFileBar(); renderAll(); showMain();
+    showToast(`✅ Restored ${files.length} file${files.length>1?'s':''} from last session`);
+  } catch(e) { files=[]; activeIdx=-2; }
+}
+
+// ════════════════════════════════════════════════
+// FILE MANAGEMENT
+// ════════════════════════════════════════════════
+function addFile(raw, name, csvText) {
+  if (!raw.length) { showToast(`⚠️ "${name}" is empty`); return; }
+  let label = name.replace(/\.csv$/i,'');
+  const existing = files.map(f=>f.name);
+  if (existing.includes(label)) { let n=2; while(existing.includes(`${label} (${n})`)) n++; label=`${label} (${n})`; }
+  const id = _nextId++;
+  files.push({ id, name:label, csvText, customers: processRaw(raw, id) });
+  switchFile(files.length - 1);
+  saveFiles();
+  showToast(`📄 "${label}" loaded — ${files[files.length-1].customers.length} customers`);
+}
+function switchFile(idx) {
+  activeIdx = idx;
+  syncCustomers();
+  resetFilters();
+  renderFileBar(); renderAll(); showMain();
+  saveFiles();
+}
+function switchAllFiles() {
+  activeIdx = -1;
+  syncCustomers();
+  resetFilters();
+  renderFileBar(); renderAll(); showMain();
+  saveFiles();
+}
+function removeFile(idx, e) {
+  e.stopPropagation();
+  const removed = files[idx].name;
+  files.splice(idx, 1);
+  // Clean up statuses for removed file
+  const fileId = files[idx]?.id;
+  if (!files.length) {
+    activeIdx = -2; customers = [];
+    document.getElementById('fileBar').style.display = 'none';
+    document.getElementById('uploadSection').style.display = 'block';
+    document.getElementById('mainContent').style.display = 'none';
+    localStorage.removeItem('xh2o_files');
+    localStorage.removeItem('xh2o_activeIdx');
+    showToast(`🗑 "${removed}" removed`);
+    return;
+  }
+  if (activeIdx >= files.length) activeIdx = files.length - 1;
+  if (activeIdx === -1 && files.length === 0) activeIdx = 0;
+  syncCustomers();
+  renderFileBar(); renderAll();
+  saveFiles();
+  showToast(`🗑 "${removed}" removed`);
+}
+function syncCustomers() {
+  if (activeIdx === -1) {
+    const all = files.flatMap(f => f.customers);
+    customers = all.sort((a,b) => { const od=STATUS_ORDER[a.status]-STATUS_ORDER[b.status]; return od!==0?od:(a._due&&b._due?a._due-b._due:0); });
+  } else if (activeIdx >= 0 && files[activeIdx]) {
+    customers = files[activeIdx].customers;
+  } else { customers = []; }
+}
+function resetFilters() {
+  ['dsearch','dstatus','dpay'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  calFilterMonth = null;
+  document.getElementById('btnCalClear').style.display='none';
+}
+function showMain() {
+  document.getElementById('uploadSection').style.display='none';
+  document.getElementById('mainContent').style.display='block';
+}
+
+// ════════════════════════════════════════════════
+// CONTACT STATUS
+// ════════════════════════════════════════════════
+function getStatus2(c) { return contactStatus[`${c._fileId}|${custKey(c)}`] || ''; }
+function setContactStatus(fileId, key, val, btn) {
+  const skey = `${fileId}|${key}`;
+  if (contactStatus[skey] === val) { delete contactStatus[skey]; val=''; }
+  else contactStatus[skey] = val;
+  saveStatuses();
+  // Update just the relevant status row without full re-render
+  const row = btn.closest('.status-row');
+  if (row) {
+    row.querySelectorAll('.s-btn').forEach(b => b.className='s-btn');
+    if (val) btn.className=`s-btn on-${val}`;
+    const card = btn.closest('.ac');
+    if (card) { card.className=`ac ${card.dataset.urgency||''} ${val?'st-'+val:''}`; }
+  }
+}
+const STATUS_LABELS = { called:'📞 Called', wa:'💬 WA Sent', confirmed:'✅ Confirmed', noreply:'❌ No Reply' };
+
+// ════════════════════════════════════════════════
+// RENDER FILE BAR
+// ════════════════════════════════════════════════
+function renderFileBar() {
+  const bar = document.getElementById('fileBar');
+  if (!files.length) { bar.style.display='none'; return; }
+  bar.style.display='block';
+  const showAll = files.length > 1;
+  let html = showAll ? `<div class="fchip all-chip ${activeIdx===-1?'active':''}" onclick="switchAllFiles()" title="View all files merged">🗂 All Files</div>` : '';
+  html += files.map((f,i) => `
+    <div class="fchip ${i===activeIdx?'active':''}" onclick="switchFile(${i})" title="${esc(f.name)}">
+      <span class="fchip-name">📄 ${esc(f.name)}</span>
+      <button class="fchip-close" onclick="removeFile(${i},event)">✕</button>
+    </div>`).join('');
+  document.getElementById('fileChips').innerHTML = html;
+  const total = files.reduce((s,f)=>s+f.customers.length,0);
+  document.getElementById('fbCount').textContent =
+    `${files.length} file${files.length>1?'s':''} · ${total} customers`;
+}
+
+// ════════════════════════════════════════════════
+// RENDER ALL
+// ════════════════════════════════════════════════
+function renderAll() { renderSummary(); renderDash(); renderActions(); renderMessages(); renderAnalytics(); renderCalendar(); }
+
+// ════════════════════════════════════════════════
+// SUMMARY
+// ════════════════════════════════════════════════
+function renderSummary() {
+  const ov = customers.filter(c=>c.status==='Overdue').length;
+  const lp = customers.filter(c=>c.status==='Lapsed').length;
+  const ds = customers.filter(c=>c.status==='Due Soon').length;
+  const ac = customers.filter(c=>c.status==='Active').length;
+  const up = customers.filter(isUnpaid).length;
+  const sa = customers.filter(c=>c._serviceAlert).length;
+
+  const curStatus = document.getElementById('dstatus')?.value || '';
+  const curPay    = document.getElementById('dpay')?.value || '';
+
+  const fname = activeIdx>=0&&files[activeIdx] ? ` <span style="font-weight:400;opacity:.65"> — ${esc(files[activeIdx].name)}</span>` :
+                activeIdx===-1 ? ' <span style="font-weight:400;opacity:.65"> — All Files</span>' : '';
+
+  const pill = (cls, active, onclick, icon, label) =>
+    `<div class="pill ${cls} clickable${active?' pill-active':''}" onclick="${onclick}" title="Click to filter dashboard">${icon} ${label}</div>`;
+
+  document.getElementById('summaryBar').innerHTML =
+    pill('pill-red',    curStatus==='Overdue',   `filterStatus('Overdue')`,   '🔴', `${ov} Overdue`) +
+    (lp ? pill('pill-orange', curStatus==='Lapsed',    `filterStatus('Lapsed')`,    '🟠', `${lp} Lapsed`) : '') +
+    pill('pill-amber',  curStatus==='Due Soon',  `filterStatus('Due Soon')`,  '🟡', `${ds} Due Soon`) +
+    pill('pill-green',  curStatus==='Active',    `filterStatus('Active')`,    '🟢', `${ac} Active`) +
+    pill('pill-purple', curPay==='unpaid',        `filterPay('unpaid')`,       '⚠️', `${up} Unpaid`) +
+    (sa ? pill('pill-orange', false, `filterStatus('Active');filterSvcAlert()`, '🔧', `${sa} Svc Alert`) : '') +
+    `<div class="pill pill-gray clickable${!curStatus&&!curPay?' pill-active':''}" onclick="clearPillFilters()" title="Show all">📋 ${customers.length} Total${fname}</div>`;
+}
+
+function filterStatus(val) {
+  const el = document.getElementById('dstatus');
+  el.value = (el.value === val) ? '' : val;  // toggle
+  document.getElementById('dpay').value = '';
+  goToDash();
+}
+function filterPay(val) {
+  const el = document.getElementById('dpay');
+  el.value = (el.value === val) ? '' : val;  // toggle
+  document.getElementById('dstatus').value = '';
+  goToDash();
+}
+function clearPillFilters() {
+  document.getElementById('dstatus').value = '';
+  document.getElementById('dpay').value = '';
+  goToDash();
+}
+function filterSvcAlert() {
+  // Switch to Analytics tab which has the service alert section
+  const tabs = document.querySelectorAll('.tab');
+  const panes = document.querySelectorAll('.pane');
+  tabs.forEach((t,i) => t.classList.toggle('on', i===3));
+  panes.forEach((p,i) => p.classList.toggle('on', i===3));
+}
+function goToDash() {
+  // Switch to dashboard tab
+  const tabs = document.querySelectorAll('.tab');
+  const panes = document.querySelectorAll('.pane');
+  tabs.forEach((t,i)  => t.classList.toggle('on', i===0));
+  panes.forEach((p,i) => p.classList.toggle('on', i===0));
+  renderDash();
+  renderSummary(); // re-render pills to update active state
+}
+
+// ════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════
+function toggleGroup() {
+  groupByArea = !groupByArea;
+  document.getElementById('btnGroup').classList.toggle('on', groupByArea);
+  renderDash();
+}
+function renderDash() {
+  const q   = (document.getElementById('dsearch').value||'').toLowerCase();
+  const sf  = document.getElementById('dstatus').value;
+  const pf  = document.getElementById('dpay').value;
+  const isAllFiles = activeIdx === -1;
+
+  let list = customers.filter(c => {
+    const name=(c['Customer Name']||'').toLowerCase(), area=(c['Area']||'').toLowerCase();
+    if (q && !name.includes(q) && !area.includes(q)) return false;
+    if (sf && c.status !== sf) return false;
+    const up=isUnpaid(c);
+    if (pf==='unpaid'&&!up) return false;
+    if (pf==='paid'&&up) return false;
+    if (calFilterMonth && monthKey(c._due) !== calFilterMonth) return false;
+    return true;
+  });
+
+  const colMap = {Overdue:'red', Lapsed:'orange', 'Due Soon':'amber', Active:'green'};
+  const head = document.getElementById('dashHead');
+  const body = document.getElementById('dashBody');
+  const totalCols = (isAllFiles ? 12 : 11);
+
+  head.innerHTML = `<th>#</th><th>Customer</th><th>Phone</th>${isAllFiles?'<th>File</th>':''}<th>Area</th><th>Product</th><th>Due Date</th><th>Days</th><th>Amount</th><th>Payment</th><th>Status</th><th>Contact</th>`;
+
+  if (!list.length) {
+    body.innerHTML = `<tr><td colspan="${totalCols}" style="text-align:center;padding:32px;color:var(--muted)">No records match the filter.</td></tr>`;
+    return;
+  }
+
+  if (groupByArea) { renderDashGrouped(list, isAllFiles, colMap, body, totalCols); return; }
+
+  body.innerHTML = list.map((c,i) => {
+    const col=colMap[c.status]||'green', days=c._days, up=isUnpaid(c);
+    const dl = days===null?'–': days<0?`<span class="dl-red">${Math.abs(days)}d ago</span>`:
+               days===0?`<span class="dl-red">Today</span>`:
+               days<=30?`<span class="dl-amber">${days}d</span>`:`<span class="dl-green">${days}d</span>`;
+    const st = getStatus2(c);
+    const stLabel = st ? (STATUS_LABELS[st]||'') : '–';
+    const svcBdg = c._serviceAlert ? ' <span class="bdg bdg-svc">Svc!</span>' : '';
+    const srcTag = isAllFiles ? `<td><span class="src-tag">${esc(files.find(f=>f.id===c._fileId)?.name||'?')}</span></td>` : '';
+    return `<tr class="r-${col}">
+      <td>${i+1}</td>
+      <td><span class="cname">${esc(c['Customer Name']||'–')}${svcBdg}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}</td>
+      ${srcTag}<td>${esc(c['Area']||'–')}</td><td>${esc(c['Product']||'–')}</td>
+      <td>${fmtDate(c._due)}</td><td>${dl}</td>
+      <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
+      <td><span class="bdg ${up?'bdg-unpaid':'bdg-paid'}">${up?'Unpaid':'Paid'}</span></td>
+      <td><span class="bdg bdg-${col}">${c.status}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${stLabel}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDashGrouped(list, isAllFiles, colMap, body, cols) {
+  const areas = {};
+  list.forEach(c => { const a=c['Area']||'Unknown'; if(!areas[a])areas[a]=[]; areas[a].push(c); });
+  let html = '';
+  Object.keys(areas).sort().forEach(area => {
+    const rows = areas[area];
+    const total = rows.reduce((s,c)=>s+parseAmount(c['AMC Amount (₹)']),0);
+    const ov=rows.filter(c=>c.status==='Overdue').length;
+    const lp=rows.filter(c=>c.status==='Lapsed').length;
+    const ds=rows.filter(c=>c.status==='Due Soon').length;
+    html += `<tr class="area-hdr"><td colspan="${cols}">📍 ${esc(area)} &nbsp;·&nbsp; ${rows.length} customers`;
+    if (ov) html += ` &nbsp;·&nbsp; 🔴 ${ov} Overdue`;
+    if (lp) html += ` &nbsp;·&nbsp; 🟠 ${lp} Lapsed`;
+    if (ds) html += ` &nbsp;·&nbsp; 🟡 ${ds} Due Soon`;
+    html += ` &nbsp;·&nbsp; ${fmtMoney(total)}</td></tr>`;
+    rows.forEach((c,i) => {
+      const col=colMap[c.status]||'green', days=c._days, up=isUnpaid(c);
+      const dl = days===null?'–': days<0?`<span class="dl-red">${Math.abs(days)}d ago</span>`:
+                 days===0?`<span class="dl-red">Today</span>`:
+                 days<=30?`<span class="dl-amber">${days}d</span>`:`<span class="dl-green">${days}d</span>`;
+      const st=getStatus2(c), svcBdg=c._serviceAlert?'<span class="bdg bdg-svc" style="font-size:10px">Svc</span>':'';
+      const srcTag = isAllFiles ? `<td><span class="src-tag">${esc(files.find(f=>f.id===c._fileId)?.name||'?')}</span></td>` : '';
+      html += `<tr class="r-${col}">
+        <td>${i+1}</td>
+        <td><span class="cname">${esc(c['Customer Name']||'–')} ${svcBdg}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}</td>
+        ${srcTag}<td>${esc(c['Area']||'–')}</td><td>${esc(c['Product']||'–')}</td>
+        <td>${fmtDate(c._due)}</td><td>${dl}</td>
+        <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
+        <td><span class="bdg ${up?'bdg-unpaid':'bdg-paid'}">${up?'Unpaid':'Paid'}</span></td>
+        <td><span class="bdg bdg-${col}">${c.status}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${st?STATUS_LABELS[st]||'':'–'}</td>
+      </tr>`;
+    });
+    html += `<tr class="area-foot"><td colspan="${cols}">Subtotal: ${rows.length} customers · ${fmtMoney(total)}</td></tr>`;
+  });
+  body.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+// EXPORT CSV
+// ════════════════════════════════════════════════
+function exportCSV() {
+  const q=document.getElementById('dsearch').value.toLowerCase();
+  const sf=document.getElementById('dstatus').value;
+  const pf=document.getElementById('dpay').value;
+  const list = customers.filter(c => {
+    const name=(c['Customer Name']||'').toLowerCase(), area=(c['Area']||'').toLowerCase();
+    if (q&&!name.includes(q)&&!area.includes(q)) return false;
+    if (sf&&c.status!==sf) return false;
+    const up=isUnpaid(c);
+    if (pf==='unpaid'&&!up) return false;
+    if (pf==='paid'&&up) return false;
+    return true;
+  });
+  if (!list.length) { showToast('Nothing to export'); return; }
+  const heads = ['Customer Name','Phone Number','Area','Install Date','AMC Duration (months)','Product','AMC Amount (₹)','Payment Status','Last Service Date','Service Calls (lifetime)','Notes','Due Date','Status','Days Left'];
+  const csvRows = [heads.map(h=>`"${h}"`).join(',')];
+  list.forEach(c => {
+    const row = heads.map(h => {
+      if (h==='Due Date') return `"${fmtDate(c._due)}"`;
+      if (h==='Status') return `"${c.status}"`;
+      if (h==='Days Left') return c._days !== null ? c._days : '';
+      return `"${(c[h]||'').replace(/"/g,'""')}"`;
+    });
+    csvRows.push(row.join(','));
+  });
+  const blob = new Blob([csvRows.join('\n')], {type:'text/csv'});
+  const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:`amc_export_${new Date().toISOString().slice(0,10)}.csv`});
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast(`⬇ Exported ${list.length} records`);
+}
+
+// ════════════════════════════════════════════════
+// ACTION LIST
+// ════════════════════════════════════════════════
+function renderActions() {
+  const urgent = customers.filter(c => c.status==='Overdue'||c.status==='Lapsed'||c.status==='Due Soon');
+  const el = document.getElementById('actionList');
+  const ovN=urgent.filter(c=>c.status==='Overdue').length;
+  const lpN=urgent.filter(c=>c.status==='Lapsed').length;
+  const dsN=urgent.filter(c=>c.status==='Due Soon').length;
+  document.getElementById('actionCount').innerHTML =
+    `<strong>${urgent.length}</strong> customers need attention &nbsp;·&nbsp; ` +
+    `<span style="color:var(--red)">${ovN} overdue</span>` +
+    (lpN?` &nbsp;·&nbsp; <span style="color:#e64a00">${lpN} lapsed</span>`:'') +
+    ` &nbsp;·&nbsp; <span style="color:var(--amber)">${dsN} due soon</span>`;
+
+  window._aMsgs = urgent.map(buildMsg);
+
+  if (!urgent.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">✅</div><p>No urgent actions!</p><small>All customers are Active with more than 30 days remaining.</small></div>`;
+    return;
+  }
+  const cardColMap = {Overdue:'red', Lapsed:'orange', 'Due Soon':'amber'};
+  const cardClsMap = {Overdue:'ov', Lapsed:'lp', 'Due Soon':'ds'};
+  el.innerHTML = urgent.map((c,i) => {
+    const up=isUnpaid(c);
+    const bdgCol = cardColMap[c.status]||'amber';
+    const urgCls = cardClsMap[c.status]||'ds';
+    const wa=waLink(c['Phone Number'], window._aMsgs[i]);
+    const dl=c._days<0?`${Math.abs(c._days)} days ${c.status==='Lapsed'?'since expiry':'overdue'}`:c._days===0?'Due today':`Due in ${c._days} days`;
+    const st=getStatus2(c);
+    return `
+    <div class="ac ${urgCls} ${st?'st-'+st:''}" data-urgency="${urgCls}">
+      <div class="ac-top">
+        <div class="ac-info">
+          <h3>${esc(c['Customer Name']||'–')}
+            <span class="bdg bdg-${bdgCol}">${c.status}</span>
+            ${up?'<span class="bdg bdg-unpaid">Unpaid</span>':''}
+            ${c._serviceAlert?'<span class="bdg bdg-svc">Svc!</span>':''}
+          </h3>
+          <div class="meta">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')}</div>
+          <div class="meta">📅 Due: <strong>${fmtDate(c._due)}</strong> &nbsp;·&nbsp; <strong>${dl}</strong> &nbsp;·&nbsp; 💰 ${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</div>
+        </div>
+        <div class="ac-btns">
+          <button class="btn-copy" onclick="doCopy(this,'_aMsgs',${i})">📋 Copy</button>
+          ${wa?`<a class="btn-wa" href="${wa}" target="_blank">💬 WA</a>`:''}
+        </div>
+      </div>
+      ${up?'<div class="unpaid-note">⚠️ Payment pending — remind about dues during renewal call.</div>':''}
+      <div class="status-row">
+        <span class="status-label">Contact:</span>
+        ${Object.entries(STATUS_LABELS).map(([k,v])=>`<button class="s-btn ${st===k?'on-'+k:''}" onclick="setContactStatus(${c._fileId},'${custKey(c).replace(/'/g,"\\'")}','${k}',this)">${v}</button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function bulkCopyMessages() {
+  const urgent = customers.filter(c => c.status==='Overdue'||c.status==='Lapsed'||c.status==='Due Soon');
+  if (!urgent.length) { showToast('No urgent customers to copy'); return; }
+  const text = urgent.map((c,i) => `── Customer ${i+1} ──\n${buildMsg(c)}`).join('\n\n');
+  copyText(text, () => showToast(`📋 Copied ${urgent.length} messages`));
+}
+function bulkCopyContacts() {
+  const urgent = customers.filter(c => c.status==='Overdue'||c.status==='Lapsed'||c.status==='Due Soon');
+  if (!urgent.length) { showToast('No urgent customers'); return; }
+  const text = urgent.map(c => `${c['Customer Name']} — ${c['Phone Number']} — ${c.status}`).join('\n');
+  copyText(text, () => showToast(`📞 Copied ${urgent.length} contacts`));
+}
+function bulkCopyAllMsgs() {
+  if (!customers.length) { showToast('No messages to copy'); return; }
+  const text = customers.map((c,i) => `── ${i+1}. ${c['Customer Name']} ──\n${buildMsg(c)}`).join('\n\n');
+  copyText(text, () => showToast(`📋 Copied ${customers.length} messages`));
+}
+
+// ════════════════════════════════════════════════
+// WHATSAPP MESSAGES
+// ════════════════════════════════════════════════
+function renderMessages() {
+  const colMap={Overdue:'red', Lapsed:'orange', 'Due Soon':'amber', Active:'green'};
+  window._allMsgs = customers.map(buildMsg);
+  const el = document.getElementById('msgList');
+  document.getElementById('msgCount').innerHTML = `<strong>${customers.length}</strong> messages ready`;
+  if (!customers.length) { el.innerHTML=`<div class="empty"><div class="ei">💬</div><p>No messages yet.</p></div>`; return; }
+  el.innerHTML = customers.map((c,i) => {
+    const col=colMap[c.status]||'green', wa=waLink(c['Phone Number'],window._allMsgs[i]);
+    return `<div class="mc">
+      <div class="mc-top">
+        <div>
+          <h3>${esc(c['Customer Name']||'–')} <span class="bdg bdg-${col}" style="font-size:10px">${c.status}</span></h3>
+          <div class="mc-sub">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')}</div>
+        </div>
+        <div class="mc-btns">
+          <button class="btn-copy" onclick="doCopy(this,'_allMsgs',${i})">📋 Copy</button>
+          ${wa?`<a class="btn-wa" href="${wa}" target="_blank">💬 WA</a>`:''}
+        </div>
+      </div>
+      <div class="msg-box">${esc(window._allMsgs[i])}</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+// ANALYTICS
+// ════════════════════════════════════════════════
+function renderAnalytics() {
+  if (!customers.length) { document.getElementById('kpiGrid').innerHTML='<p style="color:var(--muted);padding:20px">No data loaded.</p>'; return; }
+
+  const totalPortfolio = customers.reduce((s,c)=>s+parseAmount(c['AMC Amount (₹)']),0);
+  const atRisk = customers.filter(c=>c.status==='Overdue'||c.status==='Lapsed'||c.status==='Due Soon').reduce((s,c)=>s+parseAmount(c['AMC Amount (₹)']),0);
+  const unpaidAmt = customers.filter(isUnpaid).reduce((s,c)=>s+parseAmount(c['AMC Amount (₹)']),0);
+  const ovCount = customers.filter(c=>c.status==='Overdue'||c.status==='Lapsed').length;
+  const svcAlerts = customers.filter(c=>c._serviceAlert).length;
+  const avg = customers.length ? Math.round(totalPortfolio/customers.length) : 0;
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi k-blue"><div class="kpi-val">${fmtMoney(totalPortfolio)}</div><div class="kpi-label">Total AMC Portfolio</div><div class="kpi-sub">${customers.length} customers · avg ${fmtMoney(avg)}</div></div>
+    <div class="kpi k-red"><div class="kpi-val">${fmtMoney(atRisk)}</div><div class="kpi-label">Revenue at Risk</div><div class="kpi-sub">Overdue + Due Soon</div></div>
+    <div class="kpi k-purple"><div class="kpi-val">${fmtMoney(unpaidAmt)}</div><div class="kpi-label">Pending Collections</div><div class="kpi-sub">${customers.filter(isUnpaid).length} unpaid customers</div></div>
+    <div class="kpi k-red"><div class="kpi-val">${ovCount}</div><div class="kpi-label">Overdue / Lapsed</div><div class="kpi-sub">Expired AMCs needing renewal</div></div>
+    <div class="kpi k-amber"><div class="kpi-val">${svcAlerts}</div><div class="kpi-label">Service Alerts</div><div class="kpi-sub">No service in 90+ days</div></div>`;
+
+  // Area chart
+  const areas={};
+  customers.forEach(c=>{const a=c['Area']||'Unknown';if(!areas[a])areas[a]=0;areas[a]+=parseAmount(c['AMC Amount (₹)']);});
+  renderBarChart('areaChart', areas, 'bf-blue');
+
+  // Product chart
+  const prods={};
+  customers.forEach(c=>{const p=c['Product']||'Unknown';if(!prods[p])prods[p]=0;prods[p]+=parseAmount(c['AMC Amount (₹)']);});
+  renderBarChart('prodChart', prods, 'bf-green');
+
+  // Monthly revenue (next 12 months)
+  const months={};
+  const now = new Date(TODAY); now.setDate(1);
+  for (let i=0;i<12;i++) {
+    const m = new Date(now); m.setMonth(m.getMonth()+i);
+    months[monthKey(m)] = {label:m.toLocaleDateString('en-IN',{month:'short',year:'2-digit'}),amt:0,count:0,ov:0,lp:0,ds:0};
+  }
+  customers.forEach(c => {
+    const mk=monthKey(c._due);
+    if (mk&&months[mk]) {
+      months[mk].amt+=parseAmount(c['AMC Amount (₹)']); months[mk].count++;
+      if(c.status==='Overdue') months[mk].ov++;
+      else if(c.status==='Lapsed') months[mk].lp++;
+      else if(c.status==='Due Soon') months[mk].ds++;
+    }
+  });
+  const maxAmt = Math.max(...Object.values(months).map(m=>m.amt),1);
+  document.getElementById('monthChart').innerHTML = Object.entries(months).map(([,m])=>{
+    const pct=Math.round(m.amt/maxAmt*100);
+    const cl = m.ov>0?'bf-red':m.lp>0?'bf-amber':m.ds>0?'bf-amber':'bf-green';
+    return `<div class="bar-row">
+      <div class="bar-label">${m.label}</div>
+      <div class="bar-track"><div class="bar-fill ${cl}" style="width:${pct}%"></div></div>
+      <div class="bar-val">${m.count?fmtMoney(m.amt):'–'}</div>
+    </div>`;
+  }).join('');
+
+  // Service alerts
+  const svcList = customers.filter(c=>c._serviceAlert);
+  document.getElementById('svcAlertCount').textContent = svcList.length ? `(${svcList.length} customers)` : '(none)';
+  document.getElementById('svcAlertList').innerHTML = svcList.length ? svcList.map(c=>`
+    <div style="background:#fff8e1;border-left:4px solid #f57f17;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px">
+      <strong>${esc(c['Customer Name']||'–')}</strong> — ${esc(c['Product']||'–')} — 📍 ${esc(c['Area']||'–')}<br>
+      <span style="color:var(--muted)">Last service: ${fmtDate(parseDate(c['Last Service Date']))} (${c._svcDays} days ago) · AMC OK until ${fmtDate(c._due)}</span>
+    </div>`).join('') : '<p style="color:var(--muted);font-size:13px">No service overdue alerts.</p>';
+}
+
+function renderBarChart(elId, dataObj, fillClass) {
+  const sorted = Object.entries(dataObj).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0]?.[1] || 1;
+  document.getElementById(elId).innerHTML = sorted.map(([label,val])=>`
+    <div class="bar-row">
+      <div class="bar-label" title="${esc(label)}">${esc(label)}</div>
+      <div class="bar-track"><div class="bar-fill ${fillClass}" style="width:${Math.round(val/max*100)}%"></div></div>
+      <div class="bar-val">${fmtMoney(val)}</div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// CALENDAR
+// ════════════════════════════════════════════════
+function renderCalendar() {
+  const now = new Date(TODAY); now.setDate(1);
+  const months=[];
+  for (let i=0;i<12;i++){const m=new Date(now);m.setMonth(m.getMonth()+i);months.push(m);}
+
+  // Also include overdue in the "past" buckets (group all overdue in current month)
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = months.map(m => {
+    const mk = monthKey(m);
+    const inMonth = customers.filter(c => monthKey(c._due)===mk);
+    const ov=inMonth.filter(c=>c.status==='Overdue').length;
+    const lp=inMonth.filter(c=>c.status==='Lapsed').length;
+    const ds=inMonth.filter(c=>c.status==='Due Soon').length;
+    const ac=inMonth.filter(c=>c.status==='Active').length;
+    const rev=inMonth.reduce((s,c)=>s+parseAmount(c['AMC Amount (₹)']),0);
+    const cls = !inMonth.length?'empty-m':ov>0?'has-ov':lp>0?'has-lp':ds>0?'has-ds':'has-active';
+    const isActiveMo = calFilterMonth===mk;
+    const mLabel = m.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+    return `<div class="cal-card ${cls} ${isActiveMo?'active-m':''}" onclick="calFilter('${mk}')">
+      <div class="cal-month">${mLabel}</div>
+      <div class="cal-count">${inMonth.length}</div>
+      <div class="cal-breakdown">
+        ${ov?`🔴 ${ov} overdue<br>`:''}${lp?`🟠 ${lp} lapsed<br>`:''}${ds?`🟡 ${ds} due soon<br>`:''}${ac?`🟢 ${ac} active`:''}
+        ${!inMonth.length?'<span style="color:#b0bec5">No renewals</span>':''}
+      </div>
+      ${rev?`<div class="cal-revenue">${fmtMoney(rev)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function calFilter(mk) {
+  if (calFilterMonth === mk) { clearCalFilter(); return; }
+  calFilterMonth = mk;
+  document.getElementById('btnCalClear').style.display='';
+  // Switch to dashboard to show filtered view
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===0));
+  document.querySelectorAll('.pane').forEach((p,i)=>p.classList.toggle('on',i===0));
+  renderDash();
+  renderCalendar();
+  showToast('📅 Dashboard filtered by selected month');
+}
+function clearCalFilter() {
+  calFilterMonth=null;
+  document.getElementById('btnCalClear').style.display='none';
+  renderDash(); renderCalendar();
+}
+
+// ════════════════════════════════════════════════
+// COPY HELPERS
+// ════════════════════════════════════════════════
+function doCopy(btn, store, idx) {
+  const orig=btn.innerHTML;
+  copyText(window[store][idx], ()=>{ btn.innerHTML='✅'; btn.classList.add('ok'); setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('ok');},2000); });
+}
+function copyText(text, cb) {
+  if (navigator.clipboard) { navigator.clipboard.writeText(text).then(cb).catch(()=>fbCopy(text,cb)); }
+  else fbCopy(text, cb);
+}
+function fbCopy(text, cb) {
+  const ta=Object.assign(document.createElement('textarea'),{value:text,style:'position:fixed;opacity:0;top:0;left:0'});
+  document.body.appendChild(ta); ta.select();
+  try{document.execCommand('copy');cb();}catch(e){}
+  document.body.removeChild(ta);
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════
+let _toastTimer;
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ════════════════════════════════════════════════
+// TAB SWITCH
+// ════════════════════════════════════════════════
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('pane-'+id).classList.add('on');
+}
+
+// ════════════════════════════════════════════════
+// FILE INPUT & DRAG/DROP
+// ════════════════════════════════════════════════
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  Array.from(e.target.files).forEach(f => {
+    const r=new FileReader();
+    r.onload=ev=>{try{addFile(parseCSV(ev.target.result),f.name,ev.target.result);}catch(err){showToast(`⚠️ Error: ${err.message}`);}};
+    r.readAsText(f);
+  });
+  e.target.value='';
+});
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag');
+  const dropped=Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.csv'));
+  if(!dropped.length){showToast('⚠️ Please drop .csv files');return;}
+  dropped.forEach(f=>{const r=new FileReader();r.onload=ev=>{try{addFile(parseCSV(ev.target.result),f.name,ev.target.result);}catch(err){showToast(`⚠️ ${err.message}`);}};r.readAsText(f);});
+});
+
+// ════════════════════════════════════════════════
+// DEMO DATA
+// ════════════════════════════════════════════════
+function loadDemo() {
+  const T=new Date(TODAY);
+  const d=(offsetMonths,dur)=>{
+    const inst=new Date(T);inst.setDate(inst.getDate()-offsetMonths*30);
+    const dd=n=>String(n).padStart(2,'0');
+    return{inst:`${dd(inst.getDate())}/${dd(inst.getMonth()+1)}/${inst.getFullYear()}`,dur};
+  };
+  const entries=[
+    {name:'Ramesh Patel',    phone:'9876543210',area:'Adajan',   ...d(13,  12),product:'RO Water Purifier',amt:'3500',pay:'Paid',  ls:'01/09/2025',sc:'4',notes:'Filter change done'},
+    {name:'Kavita Shah',     phone:'9865432109',area:'Vesu',     ...d(15,  12),product:'UV Purifier',      amt:'2500',pay:'Unpaid',ls:'15/07/2025',sc:'2',notes:'Payment follow-up needed'},
+    {name:'Jayesh Modi',     phone:'9754321098',area:'Katargam', ...d(12.5,12),product:'RO+UV System',     amt:'4500',pay:'Paid',  ls:'01/09/2025',sc:'5',notes:'Good customer'},
+    {name:'Priya Desai',     phone:'9643210987',area:'Althan',   ...d(11.5,12),product:'Water Softener',   amt:'6000',pay:'Unpaid',ls:'01/03/2025',sc:'3',notes:''},
+    {name:'Dinesh Trivedi',  phone:'9532109876',area:'Bhatar',   ...d(12.2,12),product:'RO Purifier',      amt:'3200',pay:'Unpaid',ls:'01/05/2025',sc:'3',notes:'Taste complaint'},
+    {name:'Amit Joshi',      phone:'9421098765',area:'Citylight',...d(6,   12),product:'RO Purifier',      amt:'2800',pay:'Paid',  ls:'15/11/2025',sc:'2',notes:''},
+    {name:'Sneha Mehta',     phone:'9310987654',area:'Pal',      ...d(3,   12),product:'Commercial RO',    amt:'8000',pay:'Paid',  ls:'01/01/2026',sc:'1',notes:'Office installation'},
+    {name:'Heena Kapoor',    phone:'9209876543',area:'Dumas Rd', ...d(1,   12),product:'RO Water Purifier',amt:'3500',pay:'Paid',  ls:'15/02/2026',sc:'2',notes:''},
+    {name:'Mahesh Solanki',  phone:'9198765432',area:'Sarthana', ...d(2,   12),product:'UV+TDS Controller',amt:'2200',pay:'Unpaid',ls:'10/01/2026',sc:'1',notes:'New customer'},
+    {name:'Reena Prajapati', phone:'9087654321',area:'Varachha', ...d(0.5, 12),product:'RO Water Purifier',amt:'3000',pay:'Paid',  ls:'01/03/2026',sc:'0',notes:'Recently installed'},
+    {name:'Nilesh Rathod',   phone:'9976543210',area:'Adajan',   ...d(5,   12),product:'RO+UV System',     amt:'4500',pay:'Paid',  ls:'01/10/2025',sc:'3',notes:''},
+    {name:'Bhavna Pandya',   phone:'9876543211',area:'Vesu',     ...d(8,   12),product:'Water Softener',   amt:'5500',pay:'Unpaid',ls:'15/07/2025',sc:'2',notes:'Seasonal customer'},
+  ];
+  const headers='Customer Name,Phone Number,Area,Install Date,AMC Duration (months),Product,AMC Amount (₹),Payment Status,Last Service Date,Service Calls (lifetime),Notes';
+  const rows=entries.map(e=>`"${e.name}","${e.phone}","${e.area}","${e.inst}","${e.dur}","${e.product}","${e.amt}","${e.pay}","${e.ls}","${e.sc}","${e.notes}"`).join('\n');
+  const csv=headers+'\n'+rows;
+  addFile(parseCSV(csv),'Sample Data.csv',csv);
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+loadStoredData();
+</script>
+</body>
+</html>
