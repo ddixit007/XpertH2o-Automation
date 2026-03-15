@@ -1,0 +1,41 @@
+Customer Name,Phone Number,Area,Install Date,AMC Duration (months),Product,AMC Amount (₹),Payment Status,Last Service Date,Service Calls (lifetime),Notes
+Mehta Rajesh,9876543201,Adajan,01-12-2024,12,RO System,3500,Unpaid,15-09-2025,3,Reminder sent twice. No response.
+Patel Sureshbhai,9876543202,Vesu,15-09-2023,24,Water Softener,7200,Unpaid,10-03-2025,8,Hardness issue reported. Follow up urgent.
+Desai Nilesh,9876543203,Katargam,10-08-2024,6,Sediment Filter,1800,Unpaid,,1,New customer. Never renewed after first AMC.
+Shah Bhavesh,9876543204,Varachha,20-03-2024,12,UV Purifier,2800,Unpaid,01-01-2025,4,Price negotiation pending.
+Joshi Haresh,9876543205,Bhatar,05-11-2023,18,RO System,5000,Unpaid,20-06-2025,6,Disputed service charge. Handle carefully.
+Trivedi Maulik,9876543206,Adajan,01-11-2024,12,Commercial RO,12000,Paid,05-11-2025,5,Renewal quote sent. Awaiting PO.
+Modi Kiran,9123456789,Piplod,14-12-2023,24,Water Softener,8500,Paid,14-12-2025,10,Corporate client. Invoice needed.
+Kapoor Rajan,9876543208,Athwa,20-01-2024,12,RO System,3500,Paid,20-07-2024,2,Relocated to new office. New address required.
+Bhatt Chirag,9876543209,Pal,10-09-2024,6,Sediment Filter,1500,Paid,10-12-2024,3,Small filter unit. Consider upsell to RO.
+Rana Vikram,9876543210,Althan,01-12-2022,36,Industrial Filter,25000,Paid,01-09-2025,15,Large industrial unit. Renewal meeting scheduled.
+Parmar Devendra,9876543211,Dumas,16-03-2025,12,RO System,3500,Unpaid,16-09-2025,2,Called once. Will visit site.
+Gohel Hardik,9876543212,Vesu,05-04-2024,24,Water Softener,6800,Paid,05-10-2025,7,Happy customer. Easy renewal expected.
+Solanki Vijay,9876543213,Adajan,25-03-2025,12,UV Purifier,2500,Partial,25-09-2025,4,Partial amount ₹1250 received. Balance due.
+Chauhan Nilam,9876543214,Ghod Dod Road,12-04-2024,24,RO System,7000,Unpaid,,1,Number not reachable. Try alternate contact.
+Makwana Jatin,9876543215,Ring Road,01-04-2025,12,Commercial RO,11000,Paid,01-10-2025,3,Office building with 3 units. Bulk discount given.
+Pandya Tejas,9876543216,Bhatar,15-05-2025,12,RO System,3800,Paid,01-10-2025,5,Regular customer. Always pays on time.
+Dave Nishant,9876543217,Udhna,01-06-2025,12,Sediment Filter,2000,Unpaid,,2,Budget constraint. Offer EMI option.
+Vyas Pratik,9876543218,Piplod,10-07-2024,24,Water Softener,9000,Paid,15-09-2025,9,TDS issue flagged at last visit. Recheck needed.
+Gandhi Rushikesh,9876543219,Althan,20-07-2025,12,RO System,4200,Paid,01-12-2025,4,New premium model installed. High value customer.
+Prajapati Dhruv,9876543220,Katargam,01-08-2025,12,UV Purifier,2200,Paid,01-02-2026,1,First time AMC. Needs education on filter changes.
+Agrawal Sumit,9876543221,Vesu,15-10-2024,24,Commercial RO,18000,Partial,20-08-2025,11,Partial payment ₹9000. Second cheque bounced.
+Rawal Shreya,9876543222,Adajan,10-09-2025,12,RO System,3500,Paid,10-03-2026,2,Residential apartment. Gate access required for visits.
+Jain Manish,9876543223,Athwa,20-10-2025,12,Water Softener,5500,Unpaid,20-01-2026,3,Business owner. Contact only after 7pm.
+Kothari Bhavin,9876543224,Pal,05-12-2024,24,Industrial Filter,22000,Paid,05-06-2025,13,Textile factory. High usage. Quarterly service needed.
+Shah Mital,9876543225,Dumas,15-11-2025,12,RO System,3200,Paid,15-02-2026,1,Beach area. High TDS — 6 month filter change cycle.
+Ladani Mahesh,9876543226,Varachha,01-01-2025,18,Commercial RO,14000,Paid,01-09-2025,6,Restaurant client. Very frequent service calls.
+Soni Hetal,9876543227,Bhatar,14-02-2025,18,RO System,4500,Paid,14-08-2025,5,Referred by Trivedi Maulik. Note that in records.
+Thakkar Dharmesh,9876543228,Adajan,15-03-2023,48,Water Softener,28000,Paid,15-09-2025,18,Long term contract. Bungalow with full water treatment setup.
+Choksi Rushit,9876543229,Piplod,01-12-2025,12,UV Purifier,2400,Unpaid,,0,Installed last month. No service yet.
+Patel Rinkesh,9876543230,Ring Road,10-01-2026,12,RO System,3800,Paid,10-01-2026,0,Brand new customer. Installation done recently.
+Nair Sudeep,9123456780,Vesu,20-04-2025,12,Antiscalant Dosing,15000,Paid,20-10-2025,4,Cooling tower application. Specialized chemical dosing.
+Iyer Venkat,9123456781,Athwa,05-05-2025,24,Commercial RO,20000,Paid,05-11-2025,6,IT company — 200 employees. High priority client.
+Pathak Ravi,9123456782,Katargam,12-06-2025,12,Iron Removal Plant,9500,Partial,12-12-2025,3,Partial payment ₹5000. Follow up for balance.
+Baria Dinesh,9123456783,Udhna,22-07-2025,12,Sediment Filter,1800,Unpaid,22-01-2026,2,Factory area. Water very turbid. Monthly visits needed.
+Kukadia Paresh,9123456784,Bhatar,30-08-2025,12,RO System,3500,Paid,28-02-2026,1,New housing society. Potential for 5 more units.
+Vasani Krupal,9123456785,Pal,18-09-2025,18,Water Softener,7800,Paid,18-03-2026,2,Dermatology clinic. Very quality-conscious customer.
+Mer Jaydeep,9123456786,Althan,25-10-2025,12,UV Purifier,2600,Unpaid,,0,Purchased but not yet activated. Needs first visit.
+Sanghvi Pooja,9123456787,Ghod Dod Road,08-11-2025,24,Commercial RO,16500,Paid,08-02-2026,3,Cafe chain — 2 outlets. Separate service schedule.
+Contractor Nitin,9123456788,Adajan,20-12-2025,12,Water Softener,5200,Paid,20-02-2026,1,Builder. May refer multiple projects.
+Kansara Hitesh,9123456790,Varachha,15-02-2026,6,Sediment Filter,1200,Unpaid,,0,Trial AMC only. Convince to upgrade to full package.

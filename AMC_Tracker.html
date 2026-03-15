@@ -134,6 +134,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .bdg-green{background:var(--green);color:#fff}
 .bdg-orange{background:#e64a00;color:#fff}
 .bdg-paid{background:#00695c;color:#fff}
+.bdg-partial{background:#e65100;color:#fff}
 .bdg-unpaid{background:#6a1b9a;color:#fff}
 .bdg-svc{background:#f57f17;color:#fff}
 
@@ -241,10 +242,74 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .dl-green{color:var(--green);font-weight:700}
 .src-tag{font-size:10px;background:#ede9fe;color:#5b21b6;border-radius:10px;padding:2px 7px;font-weight:700}
 
+/* EDIT BUTTON */
+.btn-edit{padding:4px 9px;background:var(--blue-l);border:1.5px solid #90caf9;color:var(--blue);
+  border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s}
+.btn-edit:hover{background:var(--blue);color:#fff}
+.bdg-edited{background:#dbeafe;color:#1d4ed8}
+
+/* EDIT MODAL */
+#editModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;
+  display:none;align-items:center;justify-content:center;padding:16px}
+#editModal.open{display:flex}
+.edit-box{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:440px;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto}
+.edit-box h3{font-size:16px;font-weight:700;margin-bottom:3px}
+.edit-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.ef{margin-bottom:14px}
+.ef label{display:block;font-size:11px;font-weight:700;color:var(--muted);
+  margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.ef input,.ef select,.ef textarea{width:100%;padding:8px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:14px;color:var(--text);outline:none;transition:.2s;
+  background:#fff;font-family:inherit}
+.ef input:focus,.ef select:focus,.ef textarea:focus{border-color:var(--blue)}
+.ef textarea{resize:vertical;min-height:70px}
+.edit-btns{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+.btn-esave{flex:1;padding:10px;background:var(--blue);color:#fff;border:none;
+  border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;min-width:120px}
+.btn-esave:hover{background:var(--blue-d)}
+.btn-ecancel{padding:10px 16px;background:#f1f5f9;color:#334155;border:1.5px solid #cbd5e1;
+  border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-ecancel:hover{background:#e2e8f0}
+.btn-ereset{padding:10px 16px;background:#fff5f5;color:var(--red);border:1.5px solid #fecaca;
+  border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-ereset:hover{background:#ffecec}
+.btn-today{padding:8px 12px;background:var(--blue-l);border:1.5px solid #90caf9;color:var(--blue);
+  border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s}
+.btn-today:hover{background:var(--blue);color:#fff}
+.ef-section-hdr{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;
+  letter-spacing:.6px;margin:14px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* QUICK RENEW */
+.btn-renew{padding:6px 13px;background:#e8f5e9;border:1.5px solid var(--green);color:var(--green);
+  border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
+.btn-renew:hover{background:var(--green);color:#fff}
+.qr-form{background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-top:10px}
+.qr-form strong{font-size:13px;color:var(--green)}
+.qr-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px}
+.qr-label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
+.qr-fields input,.qr-fields select{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none;background:#fff;font-family:inherit}
+.qr-fields input:focus,.qr-fields select:focus{border-color:var(--green)}
+.qr-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+/* ACTIVITY LOG */
+.ef-log-add{display:flex;gap:6px;margin-bottom:8px}
+.ef-log-add input{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit}
+.ef-log-add input:focus{border-color:var(--blue)}
+.btn-add-log{padding:7px 12px;background:var(--blue-l);border:1.5px solid #90caf9;color:var(--blue);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn-add-log:hover{background:var(--blue);color:#fff}
+.ef-log-feed{max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px 10px;background:#fafafa}
+.ef-log-entry{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:12px;align-items:flex-start}
+.ef-log-entry:last-child{border-bottom:none}
+.ef-log-ts{color:var(--muted);flex-shrink:0;white-space:nowrap;font-size:11px;margin-top:1px;min-width:110px}
+.ef-log-text{color:var(--text);flex:1}
+.ef-renewal-feed{margin-top:4px}
+.ef-renewal-item{padding:8px 12px;background:#f0fdf4;border-left:3px solid var(--green);border-radius:0 8px 8px 0;margin-bottom:6px;font-size:12px;line-height:1.5}
+
 /* PRINT */
 @media print{
   #fileBar,#toast,.tabs,.filter-bar,.bulk-bar,.btn-copy,.btn-wa,.ac-btns,.status-row,
-  .btn-sm,.upload-wrap,.pane:not(.on){display:none!important}
+  .btn-sm,.btn-edit,#editModal,.upload-wrap,.pane:not(.on){display:none!important}
   header{background:#1565c0;-webkit-print-color-adjust:exact;print-color-adjust:exact;position:static}
   .main{padding:0;display:block!important}
   .summary-bar{margin-bottom:10px}
@@ -392,6 +457,91 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="editModal" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-box">
+    <h3>✏️ Edit Customer</h3>
+    <p class="edit-sub" id="editSubtitle"></p>
+
+    <div class="ef-section-hdr">🔄 Renewal</div>
+    <div class="ef">
+      <label>Renewal Date <span style="font-weight:400;text-transform:none;letter-spacing:0">(new AMC start date)</span></label>
+      <div style="display:flex;gap:6px">
+        <input type="date" id="ef-inst" style="flex:1">
+        <button onclick="document.getElementById('ef-inst').value=new Date().toISOString().slice(0,10)" class="btn-today">Today</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Setting this recalculates the due date → customer becomes Active</div>
+    </div>
+    <div class="ef">
+      <label>AMC Duration (months)</label>
+      <select id="ef-dur">
+        <option value="6">6 months</option>
+        <option value="12">12 months</option>
+        <option value="18">18 months</option>
+        <option value="24">24 months</option>
+        <option value="36">36 months</option>
+        <option value="48">48 months</option>
+      </select>
+    </div>
+
+    <div class="ef-section-hdr">💳 Payment &amp; Follow-up</div>
+    <div class="ef">
+      <label>Payment Status</label>
+      <select id="ef-pay">
+        <option value="Paid">Paid</option>
+        <option value="Unpaid">Unpaid</option>
+        <option value="Partial">Partial</option>
+      </select>
+    </div>
+    <div class="ef">
+      <label>Contact Status</label>
+      <select id="ef-contact">
+        <option value="">— Not Set —</option>
+        <option value="called">📞 Called</option>
+        <option value="wa">💬 WA Sent</option>
+        <option value="confirmed">✅ Confirmed</option>
+        <option value="noreply">❌ No Reply</option>
+      </select>
+    </div>
+    <div class="ef">
+      <label>AMC Amount (₹)</label>
+      <input type="number" id="ef-amt" placeholder="e.g. 3500" min="0">
+    </div>
+
+    <div class="ef-section-hdr">🔧 Service</div>
+    <div class="ef">
+      <label>Last Service Date</label>
+      <input type="date" id="ef-svc">
+    </div>
+    <div class="ef">
+      <label>Service Calls (lifetime)</label>
+      <input type="number" id="ef-calls" min="0" placeholder="e.g. 5">
+    </div>
+
+    <div class="ef-section-hdr">📝 Notes</div>
+    <div class="ef">
+      <textarea id="ef-notes" placeholder="Add follow-up notes…"></textarea>
+    </div>
+    <div class="edit-btns">
+      <button class="btn-esave" onclick="saveEditModal()">💾 Save Changes</button>
+      <button class="btn-ecancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-ereset" onclick="resetEditModal()">↺ Reset to CSV</button>
+    </div>
+
+    <div class="ef-section-hdr" style="margin-top:20px">📋 Activity Log</div>
+    <div class="ef-log-add">
+      <input type="text" id="ef-log-input" placeholder="Log an interaction (call, visit, etc.)…" onkeydown="if(event.key==='Enter'){addManualLog();return false}">
+      <button class="btn-add-log" onclick="addManualLog()">+ Add</button>
+    </div>
+    <div id="ef-log-feed" class="ef-log-feed"><div style="font-size:12px;color:var(--muted);padding:8px 0">No activity logged yet.</div></div>
+
+    <div id="ef-renewal-section" style="display:none">
+      <div class="ef-section-hdr" style="margin-top:16px">🔄 Renewal History</div>
+      <div id="ef-renewal-feed" class="ef-renewal-feed"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════
 // STATE
@@ -400,9 +550,15 @@ let files         = [];      // [{id, name, csvText, customers}]
 let activeIdx     = -2;      // -2=unset, -1=all files, ≥0=specific file
 let customers     = [];      // always synced to active selection
 let contactStatus = {};      // {"fileId|custKey": status}
+let rowEdits      = {};      // {"fileId|name|phone": {field:val,...}}
+let renewalHistory= {};      // {"fileId|name|phone": [{ts,date,duration,amount}]}
+let activityLog   = {};      // {"fileId|name|phone": [{ts,type,text}]}
 let groupByArea   = false;
 let calFilterMonth = null;   // null or "YYYY-MM" string
 let _nextId       = 1;
+let _editList     = [];      // last rendered dash list for modal indexing
+let _editModalIdx = -1;
+let _actionList   = [];      // last rendered action list for quick renew indexing
 const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
 
 // ════════════════════════════════════════════════
@@ -446,6 +602,8 @@ function parseDate(s) {
   const d = new Date(s); return isNaN(d) ? null : d;
 }
 function addMonths(d, n) { const r = new Date(d); r.setMonth(r.getMonth()+(parseInt(n)||12)); return r; }
+function dateToInput(s) { const d=parseDate(s); return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : ''; }
+function inputToDate(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}-${m}-${y}`; }
 function fmtDate(d) { if (!d) return '–'; return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
 function monthKey(d) { if (!d) return null; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function daysLeft(due) { return Math.round((due - TODAY) / 86400000); }
@@ -457,7 +615,9 @@ function computeStatus(days, paid) {
 }
 function parseAmount(s) { return parseFloat(String(s||'0').replace(/[₹,\s]/g,'')) || 0; }
 function fmtMoney(n) { return '₹' + n.toLocaleString('en-IN'); }
-function isUnpaid(c) { const s=(c['Payment Status']||'').toLowerCase(); return s.includes('unpaid')||s.includes('pending')||s==='no'; }
+function isUnpaid(c)  { const s=(c['Payment Status']||'').toLowerCase(); return s.includes('unpaid')||s.includes('pending')||s==='no'; }
+function isPartial(c) { return (c['Payment Status']||'').toLowerCase().includes('partial'); }
+function payBadge(c)  { return isUnpaid(c) ? '<span class="bdg bdg-unpaid">Unpaid</span>' : isPartial(c) ? '<span class="bdg bdg-partial">Partial</span>' : '<span class="bdg bdg-paid">Paid</span>'; }
 
 // ════════════════════════════════════════════════
 // DATA PROCESSING
@@ -465,16 +625,20 @@ function isUnpaid(c) { const s=(c['Payment Status']||'').toLowerCase(); return s
 const STATUS_ORDER = { Overdue:0, Lapsed:1, 'Due Soon':2, Active:3, Unknown:4 };
 function processRaw(raw, fileId) {
   return raw.map(r => {
-    const inst    = parseDate(r['Install Date']);
-    const dur     = parseInt(r['AMC Duration (months)']) || 12;
+    const ekey = `${fileId}|${r['Customer Name']}|${r['Phone Number']}`;
+    const ed   = rowEdits[ekey] || {};
+    const m    = Object.keys(ed).length ? Object.assign({}, r, ed) : r;
+    const inst    = parseDate(m['Install Date']);
+    const dur     = parseInt(m['AMC Duration (months)']) || 12;
     const due     = inst ? addMonths(inst, dur) : null;
     const days    = due ? daysLeft(due) : null;
-    const paid    = !isUnpaid(r);
+    const paid    = !isUnpaid(m);
     const status  = computeStatus(days, paid);
-    const lastSvc = parseDate(r['Last Service Date']);
+    const lastSvc = parseDate(m['Last Service Date']);
     const svcDays = lastSvc ? Math.round((TODAY - lastSvc) / 86400000) : null;
     const _serviceAlert = svcDays !== null && svcDays > 90 && status === 'Active';
-    return { ...r, _inst:inst, _due:due, _days:days, status, _svcDays:svcDays, _serviceAlert, _fileId:fileId };
+    const _edited = Object.keys(ed).length > 0;
+    return { ...m, _inst:inst, _due:due, _days:days, status, _svcDays:svcDays, _serviceAlert, _fileId:fileId, _editKey:ekey, _edited };
   }).sort((a,b) => {
     const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
     return od !== 0 ? od : (a._due && b._due ? a._due - b._due : 0);
@@ -520,10 +684,29 @@ function saveFiles() {
 function saveStatuses() {
   try { localStorage.setItem('xh2o_statuses', JSON.stringify(contactStatus)); } catch(e) {}
 }
+function saveEdits()    { try { localStorage.setItem('xh2o_edits',    JSON.stringify(rowEdits));       } catch(e) {} }
+function saveRenewals() { try { localStorage.setItem('xh2o_renewals', JSON.stringify(renewalHistory)); } catch(e) {} }
+function saveLog()      { try { localStorage.setItem('xh2o_log',      JSON.stringify(activityLog));    } catch(e) {} }
+
+function custLogKey(c) { return `${c._fileId}|${c['Customer Name']}|${c['Phone Number']}`; }
+function addLogEntry(key, type, text) {
+  if (!activityLog[key]) activityLog[key] = [];
+  activityLog[key].unshift({ ts: Date.now(), type, text });
+  saveLog();
+}
+function fmtLogTs(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'2-digit'}) + ', ' +
+         d.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',hour12:true});
+}
+
 function loadStoredData() {
   try {
     const ss = localStorage.getItem('xh2o_statuses');
     if (ss) contactStatus = JSON.parse(ss);
+    const se = localStorage.getItem('xh2o_edits');    if (se) rowEdits = JSON.parse(se);
+    const sr = localStorage.getItem('xh2o_renewals'); if (sr) renewalHistory = JSON.parse(sr);
+    const sl = localStorage.getItem('xh2o_log');      if (sl) activityLog    = JSON.parse(sl);
     const sf = localStorage.getItem('xh2o_files');
     if (!sf) return;
     const data = JSON.parse(sf);
@@ -721,6 +904,158 @@ function goToDash() {
 }
 
 // ════════════════════════════════════════════════
+// EDIT MODAL
+// ════════════════════════════════════════════════
+function openEditModal(idx) {
+  const c = _editList[idx];
+  if (!c) return;
+  _editModalIdx = idx;
+  document.getElementById('editSubtitle').textContent = `${c['Customer Name']||'–'} · ${c['Phone Number']||'–'}`;
+  const origInstVal = dateToInput(c['Install Date'] || '');
+  document.getElementById('ef-inst').value           = origInstVal;
+  document.getElementById('ef-inst').dataset.origVal = origInstVal;
+  const durVal = parseInt(c['AMC Duration (months)']) || 12;
+  document.getElementById('ef-dur').value     = [6,12,18,24,36,48].includes(durVal) ? durVal : 12;
+  document.getElementById('ef-pay').value     = c['Payment Status'] || 'Paid';
+  document.getElementById('ef-contact').value = getStatus2(c) || '';
+  document.getElementById('ef-amt').value     = parseAmount(c['AMC Amount (₹)']) || '';
+  document.getElementById('ef-svc').value     = dateToInput(c['Last Service Date'] || '');
+  document.getElementById('ef-calls').value   = c['Service Calls (lifetime)'] || '';
+  document.getElementById('ef-notes').value   = c['Notes'] || '';
+  document.getElementById('ef-log-input').value = '';
+  const lk = custLogKey(c);
+  renderModalLog(lk);
+  renderModalHistory(lk);
+  document.getElementById('editModal').classList.add('open');
+}
+function renderModalLog(key) {
+  const entries = activityLog[key] || [];
+  document.getElementById('ef-log-feed').innerHTML = entries.length
+    ? entries.map(e => `<div class="ef-log-entry"><span class="ef-log-ts">${fmtLogTs(e.ts)}</span><span class="ef-log-text">${esc(e.text)}</span></div>`).join('')
+    : '<div style="font-size:12px;color:var(--muted);padding:8px 0">No activity logged yet.</div>';
+}
+function renderModalHistory(key) {
+  const entries = renewalHistory[key] || [];
+  const sec = document.getElementById('ef-renewal-section');
+  if (!entries.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  document.getElementById('ef-renewal-feed').innerHTML = entries.map(e =>
+    `<div class="ef-renewal-item">🔄 <strong>${esc(e.date)}</strong> &nbsp;·&nbsp; ${esc(e.duration)} months &nbsp;·&nbsp; ${fmtMoney(parseAmount(e.amount))}<br><span style="color:var(--muted);font-size:11px">${fmtLogTs(e.ts)}</span></div>`
+  ).join('');
+}
+function addManualLog() {
+  if (_editModalIdx < 0) return;
+  const c = _editList[_editModalIdx];
+  const input = document.getElementById('ef-log-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addLogEntry(custLogKey(c), 'note', `📝 ${text}`);
+  input.value = '';
+  renderModalLog(custLogKey(c));
+  showToast('✅ Note added');
+}
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+  _editModalIdx = -1;
+}
+function saveEditModal() {
+  if (_editModalIdx < 0) return;
+  const c    = _editList[_editModalIdx];
+  const ekey = c._editKey;
+  const svcRaw = document.getElementById('ef-svc').value;
+  const instEl   = document.getElementById('ef-inst');
+  const instRaw  = instEl.value;
+  const origInst = instEl.dataset.origVal || '';
+  const renewalChanged = instRaw && instRaw !== origInst;
+  rowEdits[ekey] = {
+    ...(renewalChanged ? {
+      'Install Date':          inputToDate(instRaw),
+      'AMC Duration (months)': document.getElementById('ef-dur').value,
+    } : {}),
+    'Payment Status':            document.getElementById('ef-pay').value,
+    'AMC Amount (₹)':            document.getElementById('ef-amt').value,
+    'Last Service Date':         svcRaw ? inputToDate(svcRaw) : '',
+    'Service Calls (lifetime)':  document.getElementById('ef-calls').value,
+    'Notes':                     document.getElementById('ef-notes').value
+  };
+  const csVal = document.getElementById('ef-contact').value;
+  const cskey = `${c._fileId}|${custKey(c)}`;
+  if (csVal) contactStatus[cskey] = csVal; else delete contactStatus[cskey];
+  saveEdits(); saveStatuses();
+
+  // ── Auto-log changes ──────────────────────────────
+  const lk = custLogKey(c);
+  if (renewalChanged) {
+    const dur = document.getElementById('ef-dur').value;
+    const amt = document.getElementById('ef-amt').value;
+    if (!renewalHistory[lk]) renewalHistory[lk] = [];
+    renewalHistory[lk].unshift({ ts: Date.now(), date: inputToDate(instRaw), duration: dur, amount: amt });
+    saveRenewals();
+    addLogEntry(lk, 'renewal', `🔄 Renewed — ${dur} months · ${fmtMoney(parseAmount(amt))}`);
+  }
+  const newPay = document.getElementById('ef-pay').value;
+  if (newPay !== (c['Payment Status'] || ''))
+    addLogEntry(lk, 'payment', `💳 Payment: ${newPay}`);
+  const contactLabels = { called:'📞 Called', wa:'💬 WA Sent', confirmed:'✅ Confirmed', noreply:'❌ No Reply' };
+  const oldContact = getStatus2(c) || '';
+  if (csVal && csVal !== oldContact)
+    addLogEntry(lk, 'contact', contactLabels[csVal] || csVal);
+  // ──────────────────────────────────────────────────
+
+  reprocessFile(c._fileId);
+  closeEditModal();
+  showToast('✅ Updated & saved');
+}
+function resetEditModal() {
+  if (_editModalIdx < 0) return;
+  const c = _editList[_editModalIdx];
+  delete rowEdits[c._editKey];
+  delete contactStatus[`${c._fileId}|${custKey(c)}`];
+  saveEdits(); saveStatuses();
+  reprocessFile(c._fileId);
+  closeEditModal();
+  showToast('↺ Reset to original CSV values');
+}
+function toggleQuickRenew(i) {
+  const el = document.getElementById(`qr-${i}`);
+  const isOpen = el.style.display !== 'none';
+  document.querySelectorAll('.qr-form').forEach(f => f.style.display = 'none');
+  if (!isOpen) el.style.display = 'block';
+}
+function confirmQuickRenew(i) {
+  const c       = _actionList[i];
+  const dateVal = document.getElementById(`qr-date-${i}`).value;
+  const durVal  = document.getElementById(`qr-dur-${i}`).value;
+  const amtVal  = document.getElementById(`qr-amt-${i}`).value;
+  if (!dateVal) { showToast('⚠️ Set a renewal date first'); return; }
+  const ekey = c._editKey;
+  rowEdits[ekey] = Object.assign({}, rowEdits[ekey] || {}, {
+    'Install Date':          inputToDate(dateVal),
+    'AMC Duration (months)': durVal,
+    'Payment Status':        'Paid',
+    'AMC Amount (₹)':        amtVal
+  });
+  saveEdits();
+  const lk = custLogKey(c);
+  if (!renewalHistory[lk]) renewalHistory[lk] = [];
+  renewalHistory[lk].unshift({ ts: Date.now(), date: inputToDate(dateVal), duration: durVal, amount: amtVal });
+  saveRenewals();
+  addLogEntry(lk, 'renewal', `🔄 Renewed — ${durVal} months · ${fmtMoney(parseAmount(amtVal))}`);
+  const cskey = `${c._fileId}|${custKey(c)}`;
+  contactStatus[cskey] = 'confirmed';
+  saveStatuses();
+  reprocessFile(c._fileId);
+  showToast(`✅ ${c['Customer Name']} renewed & moved to Active`);
+}
+
+function reprocessFile(fileId) {
+  const f = files.find(f => f.id === fileId);
+  if (f) f.customers = processRaw(parseCSV(f.csvText), f.id);
+  syncCustomers();
+  renderAll();
+}
+
+// ════════════════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════════════════
 function toggleGroup() {
@@ -748,9 +1083,10 @@ function renderDash() {
   const colMap = {Overdue:'red', Lapsed:'orange', 'Due Soon':'amber', Active:'green'};
   const head = document.getElementById('dashHead');
   const body = document.getElementById('dashBody');
-  const totalCols = (isAllFiles ? 12 : 11);
+  const totalCols = (isAllFiles ? 14 : 13);
+  _editList = list;
 
-  head.innerHTML = `<th>#</th><th>Customer</th><th>Phone</th>${isAllFiles?'<th>File</th>':''}<th>Area</th><th>Product</th><th>Due Date</th><th>Days</th><th>Amount</th><th>Payment</th><th>Status</th><th>Contact</th>`;
+  head.innerHTML = `<th>#</th><th>Customer</th><th>Phone</th>${isAllFiles?'<th>File</th>':''}<th>Area</th><th>Product</th><th>Due Date</th><th>Days</th><th>Amount</th><th>Payment</th><th>Status</th><th>Calls</th><th>Contact</th><th></th>`;
 
   if (!list.length) {
     body.innerHTML = `<tr><td colspan="${totalCols}" style="text-align:center;padding:32px;color:var(--muted)">No records match the filter.</td></tr>`;
@@ -767,17 +1103,20 @@ function renderDash() {
     const st = getStatus2(c);
     const stLabel = st ? (STATUS_LABELS[st]||'') : '–';
     const svcBdg = c._serviceAlert ? ' <span class="bdg bdg-svc">Svc!</span>' : '';
+    const editBdg = c._edited ? ' <span class="bdg bdg-edited">✎</span>' : '';
     const srcTag = isAllFiles ? `<td><span class="src-tag">${esc(files.find(f=>f.id===c._fileId)?.name||'?')}</span></td>` : '';
     return `<tr class="r-${col}">
       <td>${i+1}</td>
-      <td><span class="cname">${esc(c['Customer Name']||'–')}${svcBdg}</span></td>
+      <td><span class="cname">${esc(c['Customer Name']||'–')}${svcBdg}${editBdg}</span></td>
       <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}</td>
       ${srcTag}<td>${esc(c['Area']||'–')}</td><td>${esc(c['Product']||'–')}</td>
-      <td>${fmtDate(c._due)}</td><td>${dl}</td>
+      <td><div style="font-weight:600;white-space:nowrap">${fmtDate(c._due)}</div>${c._inst?`<div style="font-size:11px;color:var(--muted);white-space:nowrap">from ${fmtDate(c._inst)}</div>`:''}</td><td>${dl}</td>
       <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
-      <td><span class="bdg ${up?'bdg-unpaid':'bdg-paid'}">${up?'Unpaid':'Paid'}</span></td>
+      <td>${payBadge(c)}</td>
       <td><span class="bdg bdg-${col}">${c.status}</span></td>
+      <td style="text-align:center;font-size:12px;color:var(--muted)">${esc(c['Service Calls (lifetime)']||'–')}</td>
       <td style="font-size:12px;color:var(--muted)">${stLabel}</td>
+      <td><button class="btn-edit" onclick="openEditModal(${i})">✏️ Edit</button></td>
     </tr>`;
   }).join('');
 }
@@ -803,17 +1142,21 @@ function renderDashGrouped(list, isAllFiles, colMap, body, cols) {
                  days===0?`<span class="dl-red">Today</span>`:
                  days<=30?`<span class="dl-amber">${days}d</span>`:`<span class="dl-green">${days}d</span>`;
       const st=getStatus2(c), svcBdg=c._serviceAlert?'<span class="bdg bdg-svc" style="font-size:10px">Svc</span>':'';
+      const editBdg=c._edited?'<span class="bdg bdg-edited" style="font-size:10px">✎</span>':'';
       const srcTag = isAllFiles ? `<td><span class="src-tag">${esc(files.find(f=>f.id===c._fileId)?.name||'?')}</span></td>` : '';
+      const editIdx = _editList.findIndex(x => x === c);
       html += `<tr class="r-${col}">
         <td>${i+1}</td>
-        <td><span class="cname">${esc(c['Customer Name']||'–')} ${svcBdg}</span></td>
+        <td><span class="cname">${esc(c['Customer Name']||'–')} ${svcBdg}${editBdg}</span></td>
         <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}</td>
         ${srcTag}<td>${esc(c['Area']||'–')}</td><td>${esc(c['Product']||'–')}</td>
-        <td>${fmtDate(c._due)}</td><td>${dl}</td>
+        <td><div style="font-weight:600;white-space:nowrap">${fmtDate(c._due)}</div>${c._inst?`<div style="font-size:11px;color:var(--muted);white-space:nowrap">from ${fmtDate(c._inst)}</div>`:''}</td><td>${dl}</td>
         <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
-        <td><span class="bdg ${up?'bdg-unpaid':'bdg-paid'}">${up?'Unpaid':'Paid'}</span></td>
+        <td>${payBadge(c)}</td>
         <td><span class="bdg bdg-${col}">${c.status}</span></td>
+        <td style="text-align:center;font-size:12px;color:var(--muted)">${esc(c['Service Calls (lifetime)']||'–')}</td>
         <td style="font-size:12px;color:var(--muted)">${st?STATUS_LABELS[st]||'':'–'}</td>
+        <td><button class="btn-edit" onclick="openEditModal(${editIdx})">✏️ Edit</button></td>
       </tr>`;
     });
     html += `<tr class="area-foot"><td colspan="${cols}">Subtotal: ${rows.length} customers · ${fmtMoney(total)}</td></tr>`;
@@ -871,6 +1214,7 @@ function renderActions() {
     ` &nbsp;·&nbsp; <span style="color:var(--amber)">${dsN} due soon</span>`;
 
   window._aMsgs = urgent.map(buildMsg);
+  _actionList = urgent;
 
   if (!urgent.length) {
     el.innerHTML = `<div class="empty"><div class="ei">✅</div><p>No urgent actions!</p><small>All customers are Active with more than 30 days remaining.</small></div>`;
@@ -891,7 +1235,7 @@ function renderActions() {
         <div class="ac-info">
           <h3>${esc(c['Customer Name']||'–')}
             <span class="bdg bdg-${bdgCol}">${c.status}</span>
-            ${up?'<span class="bdg bdg-unpaid">Unpaid</span>':''}
+            ${isUnpaid(c)||isPartial(c)?payBadge(c):''}
             ${c._serviceAlert?'<span class="bdg bdg-svc">Svc!</span>':''}
           </h3>
           <div class="meta">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')}</div>
@@ -900,9 +1244,36 @@ function renderActions() {
         <div class="ac-btns">
           <button class="btn-copy" onclick="doCopy(this,'_aMsgs',${i})">📋 Copy</button>
           ${wa?`<a class="btn-wa" href="${wa}" target="_blank">💬 WA</a>`:''}
+          <button class="btn-renew" onclick="toggleQuickRenew(${i})">🔄 Renew</button>
         </div>
       </div>
       ${up?'<div class="unpaid-note">⚠️ Payment pending — remind about dues during renewal call.</div>':''}
+      <div id="qr-${i}" class="qr-form" style="display:none">
+        <strong>🔄 Quick Renew</strong>
+        <div class="qr-fields">
+          <div>
+            <label class="qr-label">Renewal Date</label>
+            <div style="display:flex;gap:5px">
+              <input type="date" id="qr-date-${i}" value="${new Date().toISOString().slice(0,10)}" style="flex:1">
+              <button class="btn-today" onclick="document.getElementById('qr-date-${i}').value=new Date().toISOString().slice(0,10)" style="padding:6px 9px;font-size:11px">Today</button>
+            </div>
+          </div>
+          <div>
+            <label class="qr-label">Duration</label>
+            <select id="qr-dur-${i}">
+              ${[6,12,18,24,36,48].map(m=>`<option value="${m}"${m===(parseInt(c['AMC Duration (months)'])||12)?' selected':''}>${m} months</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="qr-label">Amount (₹)</label>
+            <input type="number" id="qr-amt-${i}" value="${parseAmount(c['AMC Amount (₹)'])||''}">
+          </div>
+        </div>
+        <div class="qr-btns">
+          <button class="btn-copy ok" onclick="confirmQuickRenew(${i})">✅ Confirm Renewal</button>
+          <button class="btn-sm" onclick="document.getElementById('qr-${i}').style.display='none'">Cancel</button>
+        </div>
+      </div>
       <div class="status-row">
         <span class="status-label">Contact:</span>
         ${Object.entries(STATUS_LABELS).map(([k,v])=>`<button class="s-btn ${st===k?'on-'+k:''}" onclick="setContactStatus(${c._fileId},'${custKey(c).replace(/'/g,"\\'")}','${k}',this)">${v}</button>`).join('')}
