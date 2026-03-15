@@ -344,6 +344,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     </div>
   </div>
   <div class="hd-right">
+    <span id="syncStatus" style="font-size:13px;font-weight:500;padding:0 4px">☁ Synced</span>
     <button class="btn-hdr" onclick="backupAll()" title="Download full backup (CSV + edits + logs + renewal history)">💾 Backup</button>
     <button class="btn-hdr btn-hdr-outline" onclick="restoreBackup()" title="Restore from a previous backup file">📥 Restore</button>
   </div>
@@ -572,6 +573,81 @@ let _actionList   = [];      // last rendered action list for quick renew indexi
 const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
 
 // ════════════════════════════════════════════════
+// SUPABASE CLOUD SYNC
+// ════════════════════════════════════════════════
+const SUPA_URL = 'https://hccrvoifaluybotqobtp.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjY3J2b2lmYWx1eWJvdHFvYnRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NjIyODUsImV4cCI6MjA4OTEzODI4NX0.DAXRLbbHxaj1J88-_cbaV6VqQTzeVs_Xz5H_3FiM-Jc';
+const SUPA_H   = { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY };
+let _online    = true;
+let _syncTimer = null;
+
+function setSyncStatus(s) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  if (s === 'synced')   { el.textContent = '☁ Synced';    el.style.color = 'rgba(255,255,255,0.75)'; }
+  else if (s === 'sync'){ el.textContent = '🔄 Syncing…'; el.style.color = 'rgba(255,255,255,0.9)'; }
+  else if (s === 'off') { el.textContent = '📴 Offline';  el.style.color = 'rgba(255,180,80,0.95)'; }
+}
+
+async function cloudSet(lsKey, value) {
+  localStorage.setItem(lsKey, value);
+  if (!_online) return;
+  clearTimeout(_syncTimer);
+  setSyncStatus('sync');
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/app_state`, {
+      method: 'POST',
+      headers: { ...SUPA_H, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ key: lsKey, value, updated_at: new Date().toISOString() })
+    });
+    if (!r.ok) throw new Error(r.status);
+    _syncTimer = setTimeout(() => setSyncStatus('synced'), 400);
+  } catch(e) {
+    _online = false;
+    setSyncStatus('off');
+    setTimeout(() => { _online = true; }, 30000);
+  }
+}
+
+async function cloudRemove(lsKey) {
+  localStorage.removeItem(lsKey);
+  if (!_online) return;
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/app_state?key=eq.${encodeURIComponent(lsKey)}`, {
+      method: 'DELETE', headers: SUPA_H
+    });
+  } catch(e) { /* silent – offline */ }
+}
+
+async function initCloud() {
+  setSyncStatus('sync');
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/app_state?select=key,value`, { headers: SUPA_H });
+    if (!r.ok) throw new Error(r.status);
+    const rows = await r.json();
+    if (!rows.length) { setSyncStatus('synced'); return; }
+    let changed = false;
+    for (const row of rows) {
+      const local = localStorage.getItem(row.key);
+      if (local !== row.value) {
+        localStorage.setItem(row.key, row.value);
+        changed = true;
+      }
+    }
+    setSyncStatus('synced');
+    if (changed) {
+      loadStoredData();
+      syncCustomers();
+      renderFileBar(); renderAll(); showMain();
+      showToast('☁ Data synced from cloud');
+    }
+  } catch(e) {
+    _online = false;
+    setSyncStatus('off');
+  }
+}
+
+// ════════════════════════════════════════════════
 // CSV PARSER
 // ════════════════════════════════════════════════
 function parseCSVLine(line) {
@@ -687,16 +763,16 @@ function custKey(c) { return `${c['Customer Name']}|${c['Phone Number']}`; }
 // ════════════════════════════════════════════════
 function saveFiles() {
   try {
-    localStorage.setItem('xh2o_files', JSON.stringify(files.map(f => ({id:f.id,name:f.name,csvText:f.csvText}))));
-    localStorage.setItem('xh2o_activeIdx', activeIdx);
+    cloudSet('xh2o_files',     JSON.stringify(files.map(f => ({id:f.id,name:f.name,csvText:f.csvText}))));
+    cloudSet('xh2o_activeIdx', String(activeIdx));
   } catch(e) { showToast('⚠️ Storage full – session only'); }
 }
 function saveStatuses() {
-  try { localStorage.setItem('xh2o_statuses', JSON.stringify(contactStatus)); } catch(e) {}
+  try { cloudSet('xh2o_statuses', JSON.stringify(contactStatus)); } catch(e) {}
 }
-function saveEdits()    { try { localStorage.setItem('xh2o_edits',    JSON.stringify(rowEdits));       } catch(e) {} }
-function saveRenewals() { try { localStorage.setItem('xh2o_renewals', JSON.stringify(renewalHistory)); } catch(e) {} }
-function saveLog()      { try { localStorage.setItem('xh2o_log',      JSON.stringify(activityLog));    } catch(e) {} }
+function saveEdits()    { try { cloudSet('xh2o_edits',    JSON.stringify(rowEdits));       } catch(e) {} }
+function saveRenewals() { try { cloudSet('xh2o_renewals', JSON.stringify(renewalHistory)); } catch(e) {} }
+function saveLog()      { try { cloudSet('xh2o_log',      JSON.stringify(activityLog));    } catch(e) {} }
 
 function custLogKey(c) { return `${c._fileId}|${c['Customer Name']}|${c['Phone Number']}`; }
 function addLogEntry(key, type, text) {
@@ -774,8 +850,8 @@ function removeFile(idx, e) {
     document.getElementById('fileBar').style.display = 'none';
     document.getElementById('uploadSection').style.display = 'block';
     document.getElementById('mainContent').style.display = 'none';
-    localStorage.removeItem('xh2o_files');
-    localStorage.removeItem('xh2o_activeIdx');
+    cloudRemove('xh2o_files');
+    cloudRemove('xh2o_activeIdx');
     showToast(`🗑 "${removed}" removed`);
     return;
   }
@@ -1609,6 +1685,7 @@ function loadDemo() {
 // INIT
 // ════════════════════════════════════════════════
 loadStoredData();
+initCloud();
 </script>
 </body>
 </html>
