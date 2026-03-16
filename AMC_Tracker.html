@@ -159,6 +159,10 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .bdg-partial{background:#e65100;color:#fff}
 .bdg-unpaid{background:#6a1b9a;color:#fff}
 .bdg-svc{background:#f57f17;color:#fff}
+.bdg-svcdone{background:var(--green);color:#fff}
+.btn-svc{padding:4px 9px;background:#e8f5e9;border:1.5px solid #a5d6a7;color:var(--green);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;display:inline-block;margin-top:3px}
+.btn-svc:hover{background:var(--green);color:#fff}
+.svc-history-item{padding:8px 12px;background:#e8f5e9;border-left:3px solid var(--green);border-radius:0 8px 8px 0;margin-bottom:6px;font-size:12px;line-height:1.5}
 
 /* ACTION CARDS */
 .ac{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;
@@ -408,7 +412,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   </div>
   <div class="col-hint">
     <strong>Expected columns (in any order):</strong>
-    <p>Customer Name · Phone Number · Area · Install Date · AMC Duration (months) · Product · AMC Amount (₹) · Payment Status · Last Service Date · Service Calls (lifetime) · Notes</p>
+    <p>Customer Name · Phone Number · Area · Install Date · AMC Duration (months) · Product · AMC Amount (₹) · Payment Status · Last Service Date · Service Calls (lifetime) · Service Interval (months) · Notes</p>
   </div>
 </div>
 
@@ -562,8 +566,22 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 
     <div class="ef-section-hdr">🔧 Service</div>
     <div class="ef">
+      <label>Service Interval</label>
+      <select id="ef-svc-interval" onchange="updateSvcNextDisplay()">
+        <option value="1">Monthly (every 1 month)</option>
+        <option value="2">Every 2 months</option>
+        <option value="3">Quarterly (every 3 months)</option>
+        <option value="6">Half-yearly (every 6 months)</option>
+        <option value="12">Yearly (every 12 months)</option>
+      </select>
+    </div>
+    <div class="ef">
       <label>Last Service Date</label>
-      <input type="date" id="ef-svc">
+      <div style="display:flex;gap:6px">
+        <input type="date" id="ef-svc" style="flex:1" oninput="updateSvcNextDisplay()">
+        <button onclick="markServicedNow()" class="btn-today" style="background:#e8f5e9;border-color:#a5d6a7;color:var(--green)">🔧 Today</button>
+      </div>
+      <div id="ef-svc-next" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
     </div>
     <div class="ef">
       <label>Service Calls (lifetime)</label>
@@ -591,6 +609,10 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <div class="ef-section-hdr" style="margin-top:16px">🔄 Renewal History</div>
       <div id="ef-renewal-feed" class="ef-renewal-feed"></div>
     </div>
+    <div id="ef-service-section" style="display:none">
+      <div class="ef-section-hdr" style="margin-top:16px">🔧 Service History</div>
+      <div id="ef-service-feed"></div>
+    </div>
   </div>
 </div>
 
@@ -605,6 +627,7 @@ let contactStatus = {};      // {"fileId|custKey": status}
 let rowEdits      = {};      // {"fileId|name|phone": {field:val,...}}
 let renewalHistory= {};      // {"fileId|name|phone": [{ts,date,duration,amount}]}
 let activityLog   = {};      // {"fileId|name|phone": [{ts,type,text}]}
+let serviceHistory= {};      // {"fileId|name|phone": [{ts,date,notes}]}
 let sheetUrl      = '';      // Google Apps Script Web App URL (if connected)
 let groupByArea   = false;
 let calFilterMonth = null;   // null or "YYYY-MM" string
@@ -770,9 +793,12 @@ function processRaw(raw, fileId) {
     const status  = computeStatus(days, paid);
     const lastSvc = parseDate(m['Last Service Date']);
     const svcDays = lastSvc ? Math.round((TODAY - lastSvc) / 86400000) : null;
-    const _serviceAlert = svcDays !== null && svcDays > 90 && status === 'Active';
+    const svcInterval = parseInt(m['Service Interval (months)']) || 1;
+    const _nextSvcDue = lastSvc ? addMonths(lastSvc, svcInterval) : null;
+    const _svcDueDays = _nextSvcDue ? daysLeft(_nextSvcDue) : null;
+    const _serviceAlert = _svcDueDays !== null && _svcDueDays <= 7 && status === 'Active';
     const _edited = Object.keys(ed).length > 0;
-    return { ...m, _inst:inst, _due:due, _days:days, status, _svcDays:svcDays, _serviceAlert, _fileId:fileId, _editKey:ekey, _edited };
+    return { ...m, _inst:inst, _due:due, _days:days, status, _svcDays:svcDays, _serviceAlert, _nextSvcDue, _svcDueDays, svcInterval, _fileId:fileId, _editKey:ekey, _edited };
   }).sort((a,b) => {
     const od = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
     return od !== 0 ? od : (a._due && b._due ? a._due - b._due : 0);
@@ -821,6 +847,7 @@ function saveStatuses() {
 function saveEdits()    { try { cloudSet('xh2o_edits',    JSON.stringify(rowEdits));       } catch(e) {} }
 function saveRenewals() { try { cloudSet('xh2o_renewals', JSON.stringify(renewalHistory)); } catch(e) {} }
 function saveLog()      { try { cloudSet('xh2o_log',      JSON.stringify(activityLog));    } catch(e) {} }
+function saveSvcHistory(){ try { cloudSet('xh2o_svchist',  JSON.stringify(serviceHistory)); } catch(e) {} }
 
 function custLogKey(c) { return `${c._fileId}|${c['Customer Name']}|${c['Phone Number']}`; }
 function addLogEntry(key, type, text) {
@@ -841,6 +868,7 @@ function loadStoredData() {
     const se = localStorage.getItem('xh2o_edits');    if (se) rowEdits = JSON.parse(se);
     const sr = localStorage.getItem('xh2o_renewals'); if (sr) renewalHistory = JSON.parse(sr);
     const sl = localStorage.getItem('xh2o_log');      if (sl) activityLog    = JSON.parse(sl);
+    const sh = localStorage.getItem('xh2o_svchist');  if (sh) serviceHistory = JSON.parse(sh);
     const su = localStorage.getItem('xh2o_sheet_url');if (su) sheetUrl = su;
     const sf = localStorage.getItem('xh2o_files');
     if (!sf) return;
@@ -1197,13 +1225,16 @@ function openEditModal(idx) {
   document.getElementById('ef-pay').value     = c['Payment Status'] || 'Paid';
   document.getElementById('ef-contact').value = getStatus2(c) || '';
   document.getElementById('ef-amt').value     = parseAmount(c['AMC Amount (₹)']) || '';
-  document.getElementById('ef-svc').value     = dateToInput(c['Last Service Date'] || '');
-  document.getElementById('ef-calls').value   = c['Service Calls (lifetime)'] || '';
-  document.getElementById('ef-notes').value   = c['Notes'] || '';
-  document.getElementById('ef-log-input').value = '';
+  document.getElementById('ef-svc').value          = dateToInput(c['Last Service Date'] || '');
+  document.getElementById('ef-svc-interval').value = String(c.svcInterval || 1);
+  document.getElementById('ef-calls').value         = c['Service Calls (lifetime)'] || '';
+  document.getElementById('ef-notes').value         = c['Notes'] || '';
+  document.getElementById('ef-log-input').value     = '';
+  updateSvcNextDisplay();
   const lk = custLogKey(c);
   renderModalLog(lk);
   renderModalHistory(lk);
+  renderModalServiceHistory(lk);
   document.getElementById('editModal').classList.add('open');
 }
 function renderModalLog(key) {
@@ -1253,6 +1284,7 @@ function saveEditModal() {
     'Payment Status':            document.getElementById('ef-pay').value,
     'AMC Amount (₹)':            document.getElementById('ef-amt').value,
     'Last Service Date':         svcRaw ? inputToDate(svcRaw) : '',
+    'Service Interval (months)': document.getElementById('ef-svc-interval').value,
     'Service Calls (lifetime)':  document.getElementById('ef-calls').value,
     'Notes':                     document.getElementById('ef-notes').value
   };
@@ -1278,6 +1310,13 @@ function saveEditModal() {
   const oldContact = getStatus2(c) || '';
   if (csVal && csVal !== oldContact)
     addLogEntry(lk, 'contact', contactLabels[csVal] || csVal);
+  const oldSvcVal = dateToInput(c['Last Service Date'] || '');
+  if (svcRaw && svcRaw !== oldSvcVal) {
+    if (!serviceHistory[lk]) serviceHistory[lk] = [];
+    serviceHistory[lk].unshift({ ts: Date.now(), date: inputToDate(svcRaw), notes: 'Service logged' });
+    saveSvcHistory();
+    addLogEntry(lk, 'service', `🔧 Service logged: ${inputToDate(svcRaw)}`);
+  }
   // ──────────────────────────────────────────────────
 
   reprocessFile(c._fileId);
@@ -1334,6 +1373,57 @@ function reprocessFile(fileId) {
 }
 
 // ════════════════════════════════════════════════
+// SERVICE HISTORY HELPERS
+// ════════════════════════════════════════════════
+function markServicedToday(editKey, c) {
+  const today = new Date().toISOString().slice(0,10);
+  rowEdits[editKey] = Object.assign({}, rowEdits[editKey] || {}, { 'Last Service Date': inputToDate(today) });
+  saveEdits();
+  const lk = custLogKey(c);
+  if (!serviceHistory[lk]) serviceHistory[lk] = [];
+  serviceHistory[lk].unshift({ ts: Date.now(), date: inputToDate(today), notes: 'Service completed' });
+  saveSvcHistory();
+  addLogEntry(lk, 'service', '🔧 Service completed today');
+  reprocessFile(c._fileId);
+  showToast(`✅ ${c['Customer Name']} — service logged today`);
+}
+function markServiced(i) {
+  const c = _editList[i]; if (!c) return;
+  markServicedToday(c._editKey, c);
+}
+function markSvcAction(i) {
+  const c = window._svcList && window._svcList[i]; if (!c) return;
+  markServicedToday(c._editKey, c);
+}
+function updateSvcNextDisplay() {
+  const svcVal = document.getElementById('ef-svc')?.value;
+  const interval = parseInt(document.getElementById('ef-svc-interval')?.value) || 1;
+  const el = document.getElementById('ef-svc-next');
+  if (!el) return;
+  if (!svcVal) { el.textContent = ''; return; }
+  const svcDate = parseDate(inputToDate(svcVal));
+  if (!svcDate) { el.textContent = ''; return; }
+  const nextDue = addMonths(svcDate, interval);
+  const days = daysLeft(nextDue);
+  const color = days < 0 ? 'var(--red)' : days <= 7 ? 'var(--amber)' : 'var(--green)';
+  el.innerHTML = `Next service due: <strong style="color:${color}">${fmtDate(nextDue)}</strong> &nbsp;(${days < 0 ? Math.abs(days)+'d overdue' : days===0 ? 'today' : 'in '+days+'d'})`;
+}
+function markServicedNow() {
+  document.getElementById('ef-svc').value = new Date().toISOString().slice(0,10);
+  updateSvcNextDisplay();
+}
+function renderModalServiceHistory(key) {
+  const entries = serviceHistory[key] || [];
+  const sec = document.getElementById('ef-service-section');
+  if (!sec) return;
+  if (!entries.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  document.getElementById('ef-service-feed').innerHTML = entries.map(e =>
+    `<div class="svc-history-item">🔧 <strong>${esc(e.date)}</strong>${e.notes?' · '+esc(e.notes):''}<br><span style="color:var(--muted);font-size:11px">${fmtLogTs(e.ts)}</span></div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════════════════
 function toggleGroup() {
@@ -1361,10 +1451,10 @@ function renderDash() {
   const colMap = {Overdue:'red', Lapsed:'orange', 'Due Soon':'amber', Active:'green'};
   const head = document.getElementById('dashHead');
   const body = document.getElementById('dashBody');
-  const totalCols = (isAllFiles ? 14 : 13);
+  const totalCols = (isAllFiles ? 15 : 14);
   _editList = list;
 
-  head.innerHTML = `<th>#</th><th>Customer</th><th>Phone</th>${isAllFiles?'<th>File</th>':''}<th>Area</th><th>Product</th><th>Due Date</th><th>Days</th><th>Amount</th><th>Payment</th><th>Status</th><th>Calls</th><th>Contact</th><th></th>`;
+  head.innerHTML = `<th>#</th><th>Customer</th><th>Phone</th>${isAllFiles?'<th>File</th>':''}<th>Area</th><th>Product</th><th>Due Date</th><th>Days</th><th>Amount</th><th>Payment</th><th>Status</th><th>Next Svc</th><th>Calls</th><th>Contact</th><th></th>`;
 
   if (!list.length) {
     body.innerHTML = `<tr><td colspan="${totalCols}" style="text-align:center;padding:32px;color:var(--muted)">No records match the filter.</td></tr>`;
@@ -1383,6 +1473,13 @@ function renderDash() {
     const svcBdg = c._serviceAlert ? ' <span class="bdg bdg-svc">Svc!</span>' : '';
     const editBdg = c._edited ? ' <span class="bdg bdg-edited">✎</span>' : '';
     const srcTag = isAllFiles ? `<td><span class="src-tag">${esc(files.find(f=>f.id===c._fileId)?.name||'?')}</span></td>` : '';
+    const svcCell = (() => {
+      if (!c._nextSvcDue) return '<td style="color:var(--muted);font-size:12px;text-align:center">–</td>';
+      const d = c._svcDueDays;
+      const clr = d < 0 ? 'var(--red)' : d <= 14 ? 'var(--amber)' : 'var(--green)';
+      const dStr = d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `in ${d}d`;
+      return `<td><div style="font-size:12px;color:${clr};font-weight:600;white-space:nowrap">${fmtDate(c._nextSvcDue)}</div><div style="font-size:11px;color:${clr}">${dStr}</div>${c._serviceAlert?`<button class="btn-svc" onclick="markServiced(${i})">🔧 Done</button>`:''}</td>`;
+    })();
     return `<tr class="r-${col}">
       <td>${i+1}</td>
       <td><span class="cname">${esc(c['Customer Name']||'–')}${svcBdg}${editBdg}</span></td>
@@ -1392,6 +1489,7 @@ function renderDash() {
       <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
       <td>${payBadge(c)}</td>
       <td><span class="bdg bdg-${col}">${c.status}</span></td>
+      ${svcCell}
       <td style="text-align:center;font-size:12px;color:var(--muted)">${esc(c['Service Calls (lifetime)']||'–')}</td>
       <td style="font-size:12px;color:var(--muted)">${stLabel}</td>
       <td><button class="btn-edit" onclick="openEditModal(${i})">✏️ Edit</button></td>
@@ -1423,6 +1521,13 @@ function renderDashGrouped(list, isAllFiles, colMap, body, cols) {
       const editBdg=c._edited?'<span class="bdg bdg-edited" style="font-size:10px">✎</span>':'';
       const srcTag = isAllFiles ? `<td><span class="src-tag">${esc(files.find(f=>f.id===c._fileId)?.name||'?')}</span></td>` : '';
       const editIdx = _editList.findIndex(x => x === c);
+      const svcCellG = (() => {
+        if (!c._nextSvcDue) return '<td style="color:var(--muted);font-size:12px;text-align:center">–</td>';
+        const d = c._svcDueDays;
+        const clr = d < 0 ? 'var(--red)' : d <= 14 ? 'var(--amber)' : 'var(--green)';
+        const dStr = d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `in ${d}d`;
+        return `<td><div style="font-size:12px;color:${clr};font-weight:600;white-space:nowrap">${fmtDate(c._nextSvcDue)}</div><div style="font-size:11px;color:${clr}">${dStr}</div>${c._serviceAlert?`<button class="btn-svc" onclick="markServiced(${editIdx})">🔧 Done</button>`:''}</td>`;
+      })();
       html += `<tr class="r-${col}">
         <td>${i+1}</td>
         <td><span class="cname">${esc(c['Customer Name']||'–')} ${svcBdg}${editBdg}</span></td>
@@ -1432,6 +1537,7 @@ function renderDashGrouped(list, isAllFiles, colMap, body, cols) {
         <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
         <td>${payBadge(c)}</td>
         <td><span class="bdg bdg-${col}">${c.status}</span></td>
+        ${svcCellG}
         <td style="text-align:center;font-size:12px;color:var(--muted)">${esc(c['Service Calls (lifetime)']||'–')}</td>
         <td style="font-size:12px;color:var(--muted)">${st?STATUS_LABELS[st]||'':'–'}</td>
         <td><button class="btn-edit" onclick="openEditModal(${editIdx})">✏️ Edit</button></td>
@@ -1447,7 +1553,7 @@ function renderDashGrouped(list, isAllFiles, colMap, body, cols) {
 // ════════════════════════════════════════════════
 function backupAll() {
   const backup = {
-    version:   2,
+    version:   3,
     app:       'XpertH2O AMC Tracker',
     exported:  new Date().toISOString(),
     files:     localStorage.getItem('xh2o_files')    || null,
@@ -1456,6 +1562,7 @@ function backupAll() {
     statuses:  localStorage.getItem('xh2o_statuses') || null,
     renewals:  localStorage.getItem('xh2o_renewals') || null,
     log:       localStorage.getItem('xh2o_log')      || null,
+    svchist:   localStorage.getItem('xh2o_svchist')  || null,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), {
@@ -1481,6 +1588,7 @@ function restoreBackup() {
         if (b.statuses)  localStorage.setItem('xh2o_statuses',  b.statuses);
         if (b.renewals)  localStorage.setItem('xh2o_renewals',  b.renewals);
         if (b.log)       localStorage.setItem('xh2o_log',       b.log);
+        if (b.svchist)   localStorage.setItem('xh2o_svchist',   b.svchist);
         const d = new Date(b.exported);
         showToast(`✅ Backup from ${d.toLocaleDateString('en-IN')} restored — reloading…`);
         setTimeout(() => location.reload(), 1200);
@@ -1530,26 +1638,58 @@ function exportCSV() {
 // ════════════════════════════════════════════════
 function renderActions() {
   const urgent = customers.filter(c => c.status==='Overdue'||c.status==='Lapsed'||c.status==='Due Soon');
+  const svcDue = customers.filter(c => c._serviceAlert);
+  window._svcList = svcDue;
   const el = document.getElementById('actionList');
   const ovN=urgent.filter(c=>c.status==='Overdue').length;
   const lpN=urgent.filter(c=>c.status==='Lapsed').length;
   const dsN=urgent.filter(c=>c.status==='Due Soon').length;
   document.getElementById('actionCount').innerHTML =
-    `<strong>${urgent.length}</strong> customers need attention &nbsp;·&nbsp; ` +
+    `<strong>${urgent.length}</strong> renewals &nbsp;·&nbsp; <strong>${svcDue.length}</strong> service due &nbsp;·&nbsp; ` +
     `<span style="color:var(--red)">${ovN} overdue</span>` +
     (lpN?` &nbsp;·&nbsp; <span style="color:#e64a00">${lpN} lapsed</span>`:'') +
-    ` &nbsp;·&nbsp; <span style="color:var(--amber)">${dsN} due soon</span>`;
+    ` &nbsp;·&nbsp; <span style="color:var(--amber)">${dsN} due soon</span>` +
+    (svcDue.length?` &nbsp;·&nbsp; <span style="color:var(--green)">${svcDue.length} svc due</span>`:'');
 
   window._aMsgs = urgent.map(buildMsg);
   _actionList = urgent;
 
-  if (!urgent.length) {
-    el.innerHTML = `<div class="empty"><div class="ei">✅</div><p>No urgent actions!</p><small>All customers are Active with more than 30 days remaining.</small></div>`;
+  if (!urgent.length && !svcDue.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">✅</div><p>No urgent actions!</p><small>All customers are Active with services up to date.</small></div>`;
     return;
   }
+
+  // ── Service Due section ──────────────────────────
+  let svcHtml = '';
+  if (svcDue.length) {
+    svcHtml = `<div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #c8e6c9">🔧 Service Due (${svcDue.length})</div>
+      ${svcDue.map((c,i) => {
+        const d = c._svcDueDays;
+        const dStr = d < 0 ? `${Math.abs(d)} days overdue` : d === 0 ? 'Due today' : `Due in ${d} days`;
+        const clr = d < 0 ? 'var(--red)' : 'var(--amber)';
+        return `<div class="ac" style="border-left-color:var(--green)">
+          <div class="ac-top">
+            <div class="ac-info">
+              <h3>${esc(c['Customer Name']||'–')} <span class="bdg bdg-svcdone">Svc Due</span></h3>
+              <div class="meta">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')}</div>
+              <div class="meta">Next: <strong>${fmtDate(c._nextSvcDue)}</strong> &nbsp;·&nbsp; <strong style="color:${clr}">${dStr}</strong> &nbsp;·&nbsp; Every ${c.svcInterval} month(s)</div>
+              ${c._svcDays !== null ? `<div class="meta" style="color:var(--muted)">Last service was ${c._svcDays} days ago</div>` : ''}
+            </div>
+            <div class="ac-btns">
+              <button class="btn-copy ok" onclick="markSvcAction(${i})">🔧 Mark Serviced Today</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  if (!urgent.length) { el.innerHTML = svcHtml; return; }
   const cardColMap = {Overdue:'red', Lapsed:'orange', 'Due Soon':'amber'};
   const cardClsMap = {Overdue:'ov', Lapsed:'lp', 'Due Soon':'ds'};
-  el.innerHTML = urgent.map((c,i) => {
+  const renewalHeader = `<div style="font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #ffcdd2">🔄 Renewals Due (${urgent.length})</div>`;
+  el.innerHTML = svcHtml + renewalHeader + urgent.map((c,i) => {
     const up=isUnpaid(c);
     const bdgCol = cardColMap[c.status]||'amber';
     const urgCls = cardClsMap[c.status]||'ds';
@@ -1717,7 +1857,7 @@ function renderAnalytics() {
   document.getElementById('svcAlertList').innerHTML = svcList.length ? svcList.map(c=>`
     <div style="background:#fff8e1;border-left:4px solid #f57f17;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px">
       <strong>${esc(c['Customer Name']||'–')}</strong> — ${esc(c['Product']||'–')} — 📍 ${esc(c['Area']||'–')}<br>
-      <span style="color:var(--muted)">Last service: ${fmtDate(parseDate(c['Last Service Date']))} (${c._svcDays} days ago) · AMC OK until ${fmtDate(c._due)}</span>
+      <span style="color:var(--muted)">Next service: <strong>${fmtDate(c._nextSvcDue)}</strong>${c._svcDays!==null?' · Last: '+c._svcDays+' days ago':''} · Interval: every ${c.svcInterval} month(s)</span>
     </div>`).join('') : '<p style="color:var(--muted);font-size:13px">No service overdue alerts.</p>';
 }
 
