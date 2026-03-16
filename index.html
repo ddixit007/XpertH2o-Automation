@@ -943,8 +943,10 @@ async function connectSheet(urlOverride) {
     if (!data.length) { setSheetError('Sheet returned no rows — check the Apps Script'); return; }
     sheetUrl = url;
     cloudSet('xh2o_sheet_url', url);
+    const existingSheet = files.find(f => f._isSheet);
+    const reuseId = existingSheet ? existingSheet.id : null;
     files = files.filter(f => !f._isSheet);
-    addFile(data, '📊 Google Sheet', null, true);
+    addFile(data, '📊 Google Sheet', null, true, reuseId);
   } catch(e) {
     setSheetError('Connection failed. Make sure the Web App is deployed as "Anyone" access.');
     showToast('⚠️ Could not connect to sheet');
@@ -957,8 +959,10 @@ async function refreshSheet(e) {
   try {
     const data = await fetchSheetData(sheetUrl);
     if (!data.length) { showToast('⚠️ Sheet is empty'); return; }
+    const oldSheet = files.find(f => f._isSheet);
+    const oldId = oldSheet ? oldSheet.id : null;
     files = files.filter(f => !f._isSheet);
-    addFile(data, '📊 Google Sheet', null, true);
+    addFile(data, '📊 Google Sheet', null, true, oldId);
     showToast('✅ Sheet refreshed — ' + data.length + ' customers');
   } catch(e) {
     showToast('⚠️ Refresh failed — check connection');
@@ -1030,7 +1034,7 @@ function resp(d, e) {
 // ════════════════════════════════════════════════
 // FILE MANAGEMENT
 // ════════════════════════════════════════════════
-function addFile(raw, name, csvText, isSheet) {
+function addFile(raw, name, csvText, isSheet, reuseId) {
   if (!raw.length) { showToast(`⚠️ "${name}" is empty`); return; }
   let label = name.replace(/\.csv$/i,'');
   if (!isSheet) {
@@ -1038,7 +1042,8 @@ function addFile(raw, name, csvText, isSheet) {
     if (existing.includes(label)) { let n=2; while(existing.includes(`${label} (${n})`)) n++; label=`${label} (${n})`; }
   }
   const storedCsv = csvText || (isSheet ? objectsToCSV(raw) : null);
-  const id = _nextId++;
+  // Reuse the same ID for sheet files so edit keys stay valid across refreshes
+  const id = (isSheet && reuseId) ? reuseId : _nextId++;
   files.push({ id, name:label, csvText:storedCsv, customers: processRaw(raw, id), _isSheet:!!isSheet });
   switchFile(files.length - 1);
   saveFiles();
