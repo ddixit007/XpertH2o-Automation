@@ -782,7 +782,14 @@ function payBadge(c)  { return isUnpaid(c) ? '<span class="bdg bdg-unpaid">Unpai
 const STATUS_ORDER = { Overdue:0, Lapsed:1, 'Due Soon':2, Active:3, Unknown:4 };
 function processRaw(raw, fileId) {
   return raw.map(r => {
-    const ekey = `${fileId}|${r['Customer Name']}|${r['Phone Number']}`;
+    const ekey   = stableKey(fileId, r);
+    const oldKey = `${fileId}|${r['Customer Name']||''}|${r['Phone Number']||''}`;
+    // Migrate old name|phone keys → stable ID-based key (runs once, then no-op)
+    if (ekey !== oldKey) {
+      [rowEdits, activityLog, renewalHistory, serviceHistory, contactStatus].forEach(store => {
+        if (store[oldKey] && !store[ekey]) { store[ekey] = store[oldKey]; delete store[oldKey]; _migDirty = true; }
+      });
+    }
     const ed   = rowEdits[ekey] || {};
     const m    = Object.keys(ed).length ? Object.assign({}, r, ed) : r;
     const inst    = parseDate(m['Install Date']);
@@ -831,6 +838,12 @@ function waLink(phone, msg) {
   return `https://wa.me/${n.startsWith('91')?n:'91'+n}?text=${encodeURIComponent(msg)}`;
 }
 function custKey(c) { return `${c['Customer Name']}|${c['Phone Number']}`; }
+// Stable edit key — uses Customer ID from sheet if present, else name|phone fallback
+let _migDirty = false;
+function stableKey(fileId, r) {
+  const cid = (r['Customer ID'] || '').trim();
+  return cid ? `${fileId}|cid:${cid}` : `${fileId}|${r['Customer Name']||''}|${r['Phone Number']||''}`;
+}
 
 // ════════════════════════════════════════════════
 // LOCALSTORAGE
@@ -849,7 +862,7 @@ function saveRenewals() { try { cloudSet('xh2o_renewals', JSON.stringify(renewal
 function saveLog()      { try { cloudSet('xh2o_log',      JSON.stringify(activityLog));    } catch(e) {} }
 function saveSvcHistory(){ try { cloudSet('xh2o_svchist',  JSON.stringify(serviceHistory)); } catch(e) {} }
 
-function custLogKey(c) { return `${c._fileId}|${c['Customer Name']}|${c['Phone Number']}`; }
+function custLogKey(c) { return c._editKey; }
 function addLogEntry(key, type, text) {
   if (!activityLog[key]) activityLog[key] = [];
   activityLog[key].unshift({ ts: Date.now(), type, text });
@@ -992,10 +1005,29 @@ function disconnectSheet(e) {
 function showSheetSetup() {
   const code =
 `function doGet(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-  var data  = sheet.getDataRange().getValues();
+  var sheet   = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var data    = sheet.getDataRange().getValues();
   if (data.length < 2) return resp([], e);
   var headers = data[0].map(function(h){ return String(h).trim(); });
+
+  // Auto-add "Customer ID" column if missing
+  var idCol = headers.indexOf('Customer ID');
+  if (idCol === -1) {
+    sheet.insertColumnBefore(1);
+    sheet.getRange(1, 1).setValue('Customer ID');
+    data    = sheet.getDataRange().getValues();
+    headers = data[0].map(function(h){ return String(h).trim(); });
+    idCol   = 0;
+  }
+  // Fill any blank IDs
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][idCol] || String(data[i][idCol]).trim() === '') {
+      var newId = 'XH' + String(Date.now()).slice(-6) + String(i).padStart(3,'0');
+      sheet.getRange(i + 1, idCol + 1).setValue(newId);
+      data[i][idCol] = newId;
+    }
+  }
+
   var rows = data.slice(1)
     .filter(function(r){ return r.some(function(c){ return c !== ''; }); })
     .map(function(row){
@@ -1045,6 +1077,7 @@ function addFile(raw, name, csvText, isSheet, reuseId) {
   // Reuse the same ID for sheet files so edit keys stay valid across refreshes
   const id = (isSheet && reuseId) ? reuseId : _nextId++;
   files.push({ id, name:label, csvText:storedCsv, customers: processRaw(raw, id), _isSheet:!!isSheet });
+  if (_migDirty) { saveEdits(); saveLog(); saveRenewals(); saveSvcHistory(); saveStatuses(); _migDirty = false; }
   switchFile(files.length - 1);
   saveFiles();
   showToast(`${isSheet?'📊':'📄'} "${label}" loaded — ${files[files.length-1].customers.length} customers`);
@@ -1107,9 +1140,9 @@ function showMain() {
 // ════════════════════════════════════════════════
 // CONTACT STATUS
 // ════════════════════════════════════════════════
-function getStatus2(c) { return contactStatus[`${c._fileId}|${custKey(c)}`] || ''; }
-function setContactStatus(fileId, key, val, btn) {
-  const skey = `${fileId}|${key}`;
+function getStatus2(c) { return contactStatus[c._editKey] || ''; }
+function setContactStatus(ekey, val, btn) {
+  const skey = ekey;
   if (contactStatus[skey] === val) { delete contactStatus[skey]; val=''; }
   else contactStatus[skey] = val;
   saveStatuses();
@@ -1294,7 +1327,7 @@ function saveEditModal() {
     'Notes':                     document.getElementById('ef-notes').value
   };
   const csVal = document.getElementById('ef-contact').value;
-  const cskey = `${c._fileId}|${custKey(c)}`;
+  const cskey = c._editKey;
   if (csVal) contactStatus[cskey] = csVal; else delete contactStatus[cskey];
   saveEdits(); saveStatuses();
 
@@ -1332,7 +1365,7 @@ function resetEditModal() {
   if (_editModalIdx < 0) return;
   const c = _editList[_editModalIdx];
   delete rowEdits[c._editKey];
-  delete contactStatus[`${c._fileId}|${custKey(c)}`];
+  delete contactStatus[c._editKey];
   saveEdits(); saveStatuses();
   reprocessFile(c._fileId);
   closeEditModal();
@@ -1363,8 +1396,7 @@ function confirmQuickRenew(i) {
   renewalHistory[lk].unshift({ ts: Date.now(), date: inputToDate(dateVal), duration: durVal, amount: amtVal });
   saveRenewals();
   addLogEntry(lk, 'renewal', `🔄 Renewed — ${durVal} months · ${fmtMoney(parseAmount(amtVal))}`);
-  const cskey = `${c._fileId}|${custKey(c)}`;
-  contactStatus[cskey] = 'confirmed';
+  contactStatus[c._editKey] = 'confirmed';
   saveStatuses();
   reprocessFile(c._fileId);
   showToast(`✅ ${c['Customer Name']} renewed & moved to Active`);
@@ -1373,6 +1405,7 @@ function confirmQuickRenew(i) {
 function reprocessFile(fileId) {
   const f = files.find(f => f.id === fileId);
   if (f) f.customers = processRaw(parseCSV(f.csvText), f.id);
+  if (_migDirty) { saveEdits(); saveLog(); saveRenewals(); saveSvcHistory(); saveStatuses(); _migDirty = false; }
   syncCustomers();
   renderAll();
 }
@@ -1748,7 +1781,7 @@ function renderActions() {
       </div>
       <div class="status-row">
         <span class="status-label">Contact:</span>
-        ${Object.entries(STATUS_LABELS).map(([k,v])=>`<button class="s-btn ${st===k?'on-'+k:''}" onclick="setContactStatus(${c._fileId},'${custKey(c).replace(/'/g,"\\'")}','${k}',this)">${v}</button>`).join('')}
+        ${Object.entries(STATUS_LABELS).map(([k,v])=>`<button class="s-btn ${st===k?'on-'+k:''}" onclick="setContactStatus('${c._editKey.replace(/'/g,"\\'")}','${k}',this)">${v}</button>`).join('')}
       </div>
     </div>`;
   }).join('');
