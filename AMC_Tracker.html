@@ -1240,7 +1240,9 @@ function resp(d, e) {
     <pre>${code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
     <p style="font-size:12px;color:#64748b">⚠️ Google will ask you to authorise the script once — click <em>Review Permissions → Allow</em>.</p>
     <p style="font-size:12px;color:#64748b">⚠️ If you already deployed an older version, go to <strong>Deploy → Manage deployments</strong> → edit the existing deployment → click <strong>Deploy</strong> to push the updated code.</p>
-    <p style="font-size:12px;color:#64748b">Your sheet must have the same column headers as the expected CSV format.</p>`;
+    <p style="font-size:12px;color:#64748b"><strong>Required columns:</strong> Customer Name · Phone Number · Area · Install Date · AMC Duration (months) · Product · AMC Amount (₹) · Payment Status · Last Service Date · Service Calls (lifetime) · Service Interval (months) · Notes</p>
+    <p style="font-size:12px;color:#64748b"><strong>Optional columns</strong> (add if needed, safe to omit): Phone 2 · Address · Category <em>(values: Residential / Commercial / Industrial)</em></p>
+    <p style="font-size:12px;color:#64748b">Missing optional columns default to empty — existing sheets without them will load correctly.</p>`;
   document.getElementById('sheetSetupModal').style.display = 'flex';
 }
 
