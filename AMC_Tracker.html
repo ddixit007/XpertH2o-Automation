@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="XpertH2O">
 <title>XpertH2O – AMC Renewal Tracker</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -335,6 +339,39 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .ef-renewal-feed{margin-top:4px}
 .ef-renewal-item{padding:8px 12px;background:#f0fdf4;border-left:3px solid var(--green);border-radius:0 8px 8px 0;margin-bottom:6px;font-size:12px;line-height:1.5}
 
+/* MOBILE MENU */
+#menuBtn{display:none;align-items:center;justify-content:center;font-size:20px;line-height:1;padding:6px 10px}
+#mobileMenu{display:none;position:fixed;top:58px;right:12px;background:#fff;border-radius:12px;
+  box-shadow:0 8px 28px rgba(0,0,0,.22);z-index:500;min-width:180px;overflow:hidden;flex-direction:column}
+#mobileMenu.open{display:flex}
+.mm-item{padding:13px 18px;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;
+  display:flex;align-items:center;gap:10px;border:none;background:none;width:100%;text-align:left}
+.mm-item:hover{background:#f1f5f9}
+.mm-item:not(:last-child){border-bottom:1px solid var(--border)}
+.mm-overlay{display:none;position:fixed;inset:0;z-index:490}
+.mm-overlay.open{display:block}
+
+/* DASH CARDS (mobile) */
+#dashCards{display:none}
+.dash-card{background:#fff;border-radius:12px;padding:14px 15px;margin-bottom:10px;
+  border-left:5px solid var(--border);box-shadow:0 1px 5px rgba(0,0,0,.07)}
+.dash-card.r-red{border-left-color:var(--red);background:#fff5f5}
+.dash-card.r-amber{border-left-color:var(--amber);background:#fffbf0}
+.dash-card.r-green{border-left-color:var(--green);background:#f6fff6}
+.dash-card.r-orange{border-left-color:#e64a00;background:#fff8f0}
+.dc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.dc-name{font-size:15px;font-weight:700;flex:1;line-height:1.3}
+.dc-meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+.dc-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:13px}
+.dc-edit{width:100%;margin-top:8px;padding:9px;background:var(--blue-l);border:1.5px solid #90caf9;
+  color:var(--blue);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;text-align:center}
+.dc-svc{font-size:11px;margin-top:4px;padding:4px 8px;background:#e8f5e9;border:1px solid #a5d6a7;
+  color:var(--green);border-radius:6px;display:inline-block;font-weight:700}
+
+/* STICKY SAVE (modal mobile) */
+.edit-sticky-save{display:none;position:sticky;bottom:0;left:0;right:0;background:#fff;
+  padding:12px 16px;border-top:1px solid var(--border);gap:8px;z-index:10}
+
 /* PRINT */
 @media print{
   #fileBar,#toast,.tabs,.filter-bar,.bulk-bar,.btn-copy,.btn-wa,.ac-btns,.status-row,
@@ -348,11 +385,63 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   th{background:#37474f!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 @media(max-width:640px){
+  /* Header */
+  header{padding:10px 14px}
+  header p{display:none}
   header h1{font-size:15px}
-  .tab{padding:8px 11px;font-size:12px}
-  th,td{padding:8px 9px;font-size:12px}
+  .hd-btn-group{display:none}
+  #menuBtn{display:flex}
+  #fileBar{top:56px}
+
+  /* Tabs */
+  .tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{font-size:11px;padding:8px 10px;white-space:nowrap;flex-shrink:0}
+
+  /* Dashboard – hide table, show cards */
+  .tbl-wrap{display:none}
+  #dashCards{display:block}
+
+  /* Filter bar */
+  .filter-bar{gap:6px}
+  .filter-bar input{min-width:0;flex:1 1 100%}
+  .filter-bar select{flex:1}
+  .btn-sm{font-size:12px;padding:6px 10px}
+
+  /* Edit modal full-screen */
+  #editModal{padding:0;align-items:flex-start}
+  .edit-box{border-radius:0;max-width:100%;width:100vw;min-height:100dvh;padding:20px 16px 16px;
+    box-shadow:none;max-height:none;overflow-y:auto}
+  .edit-sticky-save{display:flex}
+
+  /* Action List */
   .ac-top{flex-direction:column}
-  #fileBar{top:62px}
+  .ac-btns{width:100%;flex-direction:column}
+  .ac-btns .btn-sm,.ac-btns .btn-copy,.ac-btns .btn-wa,.ac-btns .btn-renew,.ac-btns .btn-esave{
+    width:100%;text-align:center;justify-content:center}
+
+  /* WhatsApp tab */
+  .mc-top{flex-direction:column;align-items:stretch}
+  .mc-btns{flex-direction:column;width:100%}
+  .mc-btns .btn-copy,.mc-btns .btn-wa{width:100%;text-align:center;justify-content:center;padding:10px}
+
+  /* Analytics */
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .analytics-row{grid-template-columns:1fr}
+
+  /* Calendar */
+  .cal-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* Summary pills */
+  .summary-bar{gap:6px}
+  .pill{font-size:12px;padding:6px 12px}
+
+  /* Upload */
+  .upload-wrap{padding:0 10px;margin:24px auto}
+
+  /* File bar */
+  .fb-inner{gap:6px}
+  .fb-label{display:none}
 }
 
 /* LOGIN SCREEN */
@@ -421,11 +510,20 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   </div>
   <div class="hd-right">
     <span id="syncStatus" style="font-size:13px;font-weight:500;padding:0 4px">☁ Synced</span>
-    <button class="btn-hdr" onclick="backupAll()" title="Download full backup (CSV + edits + logs + renewal history)">💾 Backup</button>
-    <button class="btn-hdr btn-hdr-outline" onclick="restoreBackup()" title="Restore from a previous backup file">📥 Restore</button>
-    <button class="btn-hdr btn-hdr-outline" id="logoutBtn" onclick="doLogout()" title="Sign out" style="display:none">🔓 <span id="headerUser"></span></button>
+    <div class="hd-btn-group" style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hdr" onclick="backupAll()" title="Download full backup">💾 Backup</button>
+      <button class="btn-hdr btn-hdr-outline" onclick="restoreBackup()" title="Restore from backup">📥 Restore</button>
+      <button class="btn-hdr btn-hdr-outline" id="logoutBtn" onclick="doLogout()" title="Sign out" style="display:none">🔓 <span id="headerUser"></span></button>
+    </div>
+    <button class="btn-hdr btn-hdr-outline" id="menuBtn" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
   </div>
 </header>
+<div class="mm-overlay" id="mmOverlay" onclick="closeMobileMenu()"></div>
+<div id="mobileMenu">
+  <button class="mm-item" onclick="backupAll();closeMobileMenu()">💾 Backup</button>
+  <button class="mm-item" onclick="restoreBackup();closeMobileMenu()">📥 Restore</button>
+  <button class="mm-item" id="mmLogout" onclick="doLogout()" style="display:none">🔓 Sign Out (<span id="mmUser"></span>)</button>
+</div>
 <div id="toast"></div>
 
 <!-- File Switcher Bar -->
@@ -518,6 +616,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
         <tbody id="dashBody"></tbody>
       </table>
     </div>
+    <div id="dashCards"></div>
   </div>
 
   <!-- TAB 2: Action List -->
@@ -692,6 +791,11 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     <div id="ef-service-section" style="display:none">
       <div class="ef-section-hdr" style="margin-top:16px">🔧 Service History</div>
       <div id="ef-service-feed"></div>
+    </div>
+
+    <div class="edit-sticky-save">
+      <button class="btn-esave" style="flex:1" onclick="saveEditModal()">💾 Save Changes</button>
+      <button class="btn-ecancel" onclick="closeEditModal()">✕</button>
     </div>
   </div>
 </div>
@@ -1582,8 +1686,37 @@ function renderDash() {
 
   if (!list.length) {
     body.innerHTML = `<tr><td colspan="${totalCols}" style="text-align:center;padding:32px;color:var(--muted)">No records match the filter.</td></tr>`;
+    document.getElementById('dashCards').innerHTML = `<div class="empty"><div class="ei">🔍</div><p>No records match the filter.</p></div>`;
     return;
   }
+
+  // Mobile card view
+  document.getElementById('dashCards').innerHTML = list.map((c,i) => {
+    const col = colMap[c.status]||'green';
+    const days = c._days;
+    const dlTxt = days===null?'–': days<0?`${Math.abs(days)}d ago`: days===0?'Today':`in ${days}d`;
+    const dlCls = days===null||days>30?'dl-green': days<0||days===0?'dl-red':'dl-amber';
+    const catBadge = c['Category'] ? ` <span class="bdg bdg-${c['Category']==='Residential'?'res':c['Category']==='Commercial'?'com':'ind'}" style="font-size:10px">${c['Category'].slice(0,3).toUpperCase()}</span>` : '';
+    const svcLine = c._serviceAlert ? `<div><span class="dc-svc">🔧 Svc due ${c._svcDueDays<0?Math.abs(c._svcDueDays)+'d overdue':'in '+c._svcDueDays+'d'}</span></div>` : '';
+    const editBdg = c._edited ? ' <span class="bdg bdg-edited">✎</span>' : '';
+    return `<div class="dash-card r-${col}">
+      <div class="dc-top">
+        <div class="dc-name">${esc(c['Customer Name']||'–')}${editBdg}</div>
+        <span class="bdg bdg-${col}" style="flex-shrink:0">${c.status}</span>
+      </div>
+      <div class="dc-meta">${esc(c['Product']||'–')}${catBadge} &nbsp;·&nbsp; 📍 ${esc(c['Area']||'–')}</div>
+      <div class="dc-row">
+        <span style="color:var(--muted);font-size:12px">📅 ${fmtDate(c._due)}</span>
+        <span class="${dlCls}" style="font-weight:700">${dlTxt}</span>
+      </div>
+      <div class="dc-row">
+        <span style="font-weight:700">${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</span>
+        ${payBadge(c)}
+      </div>
+      ${svcLine}
+      <button class="dc-edit" onclick="openEditModal(${i})">✏️ Edit Customer</button>
+    </div>`;
+  }).join('');
 
   if (groupByArea) { renderDashGrouped(list, isAllFiles, colMap, body, totalCols); return; }
 
@@ -2185,6 +2318,18 @@ function doLogout() {
 function _showLogoutBtn(label) {
   document.getElementById('headerUser').textContent = label;
   document.getElementById('logoutBtn').style.display = '';
+  const mm = document.getElementById('mmLogout');
+  const mu = document.getElementById('mmUser');
+  if (mm) mm.style.display = '';
+  if (mu) mu.textContent = label;
+}
+function toggleMobileMenu() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.getElementById('mmOverlay').classList.toggle('open');
+}
+function closeMobileMenu() {
+  document.getElementById('mobileMenu').classList.remove('open');
+  document.getElementById('mmOverlay').classList.remove('open');
 }
 
 function checkSession() {
