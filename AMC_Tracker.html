@@ -523,6 +523,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <select id="loginUser">
         <option value="owner">Owner</option>
         <option value="admin2">Admin 2</option>
+        <option value="sales">Sales</option>
         <option value="technician">Technician</option>
       </select>
     </div>
@@ -619,12 +620,13 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 <div class="main" id="mainContent">
   <div class="summary-bar" id="summaryBar"></div>
   <div class="tabs">
-    <button class="tab on" onclick="switchTab('dash',this)">📊 Dashboard</button>
-    <button class="tab" onclick="switchTab('action',this)">⚡ Action List</button>
-    <button class="tab" onclick="switchTab('msg',this)">💬 WhatsApp</button>
-    <button class="tab" onclick="switchTab('analytics',this)">📈 Analytics</button>
-    <button class="tab" onclick="switchTab('calendar',this)">📅 Calendar</button>
-    <button class="tab" onclick="switchTab('sales',this)">🔥 Sales</button>
+    <button class="tab on" data-tab="dash" onclick="switchTab('dash',this)">📊 Dashboard</button>
+    <button class="tab" data-tab="action" onclick="switchTab('action',this)">⚡ Action List</button>
+    <button class="tab" data-tab="msg" onclick="switchTab('msg',this)">💬 WhatsApp</button>
+    <button class="tab" data-tab="analytics" onclick="switchTab('analytics',this)">📈 Analytics</button>
+    <button class="tab" data-tab="calendar" onclick="switchTab('calendar',this)">📅 Calendar</button>
+    <button class="tab" data-tab="sales" onclick="switchTab('sales',this)">🔥 Sales</button>
+    <button class="tab" data-tab="assign" onclick="switchTab('assign',this)">📋 Assignments</button>
   </div>
 
   <!-- TAB 1: Dashboard -->
@@ -677,6 +679,18 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       </div>
     </div>
     <div id="msgList"></div>
+
+    <!-- Cross-sell Section -->
+    <div id="crossSellSection" style="margin-top:20px">
+      <div class="bulk-bar" style="cursor:pointer;user-select:none" onclick="toggleCrossSell()">
+        <p><strong>🔀 Cross-sell Messages</strong> <span id="crossSellCount" style="font-weight:400;color:var(--muted)"></span></p>
+        <div class="bulk-btns">
+          <button class="btn-sm" onclick="event.stopPropagation();bulkCopyCrossSell()">📋 Copy All Cross-sell</button>
+          <span id="crossSellChevron" style="font-size:16px;color:var(--muted);padding:0 4px">▶</span>
+        </div>
+      </div>
+      <div id="crossSellList" style="display:none"></div>
+    </div>
   </div>
 
   <!-- TAB 4: Analytics -->
@@ -710,7 +724,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   </div>
 
   <!-- TAB 6: Sales Pipeline -->
-  <div class="pane" id="pane-sales">
+  <div class="pane" id="pane-sales" data-pane="sales">
     <div class="summary-bar" id="salesSummary"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div class="sales-filter-row" style="display:flex;gap:6px;flex-wrap:wrap">
@@ -723,6 +737,14 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <button class="btn-primary" style="margin-top:0;padding:8px 18px;font-size:13px;flex-shrink:0" onclick="openLeadModal(null)">＋ Add Lead</button>
     </div>
     <div id="leadList"></div>
+    </div>
+
+  <!-- TAB 7: Assignments (Technician view) -->
+  <div class="pane" id="pane-assign">
+    <div class="bulk-bar">
+      <p id="assignCount"></p>
+    </div>
+    <div id="assignList"></div>
   </div>
 </div>
 
@@ -1491,7 +1513,7 @@ function renderFileBar() {
 // ════════════════════════════════════════════════
 // RENDER ALL
 // ════════════════════════════════════════════════
-function renderAll() { renderSummary(); renderDash(); renderActions(); renderMessages(); renderAnalytics(); renderCalendar(); renderSales(); }
+function renderAll() { renderSummary(); renderDash(); renderActions(); renderMessages(); renderAnalytics(); renderCalendar(); renderSales(); renderAssignments(); }
 
 // ════════════════════════════════════════════════
 // SUMMARY
@@ -2181,6 +2203,124 @@ function renderMessages() {
 }
 
 // ════════════════════════════════════════════════
+// CROSS-SELL MESSAGES
+// ════════════════════════════════════════════════
+let _crossSellOpen = false;
+
+function toggleCrossSell() {
+  _crossSellOpen = !_crossSellOpen;
+  document.getElementById('crossSellList').style.display = _crossSellOpen ? 'block' : 'none';
+  document.getElementById('crossSellChevron').textContent = _crossSellOpen ? '▼' : '▶';
+  if (_crossSellOpen) renderCrossSell();
+}
+
+function _getCrossSellSuggestion(c) {
+  const p = (c['Product'] || '').toLowerCase();
+  const cat = c['Category'] || '';
+  const hasRO  = p.includes('ro');
+  const hasSoft = p.includes('softener');
+  const hasUV   = p.includes('uv');
+  const hasSed  = p.includes('sediment');
+  if (hasRO && !hasSoft) return 'Water Softener';
+  if (hasSoft && !hasRO)  return 'RO System';
+  if (hasUV  && !hasRO)   return 'RO System';
+  if (hasSed && !hasRO)   return 'RO System';
+  if (cat === 'Commercial' && !p.includes('commercial ro')) return 'Commercial RO';
+  return null;
+}
+
+function _buildCrossSellMsg(c, suggested) {
+  const name    = (c['Customer Name'] || 'Customer').trim();
+  const existing = (c['Product'] || 'Water Purifier').trim();
+  const cat      = c['Category'] || '';
+  const comLine  = cat === 'Commercial' ? 'Tamara office/factory mate ' : '';
+  return `Namaste ${name} bhai/ben,\n\nAapna ${existing} ni service hum karie chhie.\n\nShya aap jaanta hata ke hum ${suggested} pan install karie chhie? ${comLine}best quality ne best price ma.\n\nJo jaroorat hoy to janavjo -- demo free che! 🙏\n\n— Xpert H2O, Surat`;
+}
+
+function renderCrossSell() {
+  const active = customers.filter(c => c.status === 'Active');
+  const pairs  = active.map(c => ({ c, suggested: _getCrossSellSuggestion(c) })).filter(x => x.suggested);
+  window._crossSellMsgs = pairs.map(({ c, suggested }) => _buildCrossSellMsg(c, suggested));
+  const countEl = document.getElementById('crossSellCount');
+  if (countEl) countEl.textContent = `(${pairs.length} suggestions)`;
+  const el = document.getElementById('crossSellList');
+  if (!pairs.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">🔀</div><p>No cross-sell suggestions.</p><small>Load data with Active customers to see suggestions.</small></div>`;
+    return;
+  }
+  el.innerHTML = pairs.map(({ c, suggested }, i) => {
+    const wa = waLink(c['Phone Number'], window._crossSellMsgs[i]);
+    return `<div class="mc">
+      <div class="mc-top">
+        <div>
+          <h3>${esc(c['Customer Name']||'–')}</h3>
+          <div class="mc-sub">Current: <strong>${esc(c['Product']||'–')}</strong> &nbsp;→&nbsp; Suggest: <strong style="color:var(--blue)">${esc(suggested)}</strong> &nbsp;·&nbsp; 📍 ${esc(c['Area']||'–')}</div>
+        </div>
+        <div class="mc-btns">
+          <button class="btn-copy" onclick="doCopy(this,'_crossSellMsgs',${i})">📋 Copy</button>
+          ${wa ? `<a class="btn-wa" href="${wa}" target="_blank">💬 WA</a>` : ''}
+        </div>
+      </div>
+      <div class="msg-box">${esc(window._crossSellMsgs[i])}</div>
+    </div>`;
+  }).join('');
+}
+
+function bulkCopyCrossSell() {
+  const active = customers.filter(c => c.status === 'Active');
+  const pairs  = active.map(c => ({ c, suggested: _getCrossSellSuggestion(c) })).filter(x => x.suggested);
+  if (!pairs.length) { showToast('No cross-sell suggestions'); return; }
+  const text = pairs.map(({ c, suggested }) => {
+    const msg = _buildCrossSellMsg(c, suggested);
+    return `── ${c['Customer Name']} → ${suggested} ──\n${msg}`;
+  }).join('\n\n');
+  copyText(text, () => showToast(`📋 Copied ${pairs.length} cross-sell messages`));
+}
+
+// ════════════════════════════════════════════════
+// ASSIGNMENTS (Technician view)
+// ════════════════════════════════════════════════
+function renderAssignments() {
+  const el = document.getElementById('assignList');
+  const countEl = document.getElementById('assignCount');
+  if (!el) return;
+  // Show all active customers sorted by next service due
+  const list = customers.filter(c => c.status === 'Active' || c._serviceAlert)
+    .sort((a, b) => {
+      // Service alerts first
+      if (a._serviceAlert !== b._serviceAlert) return a._serviceAlert ? -1 : 1;
+      if (a._nextSvcDue && b._nextSvcDue) return a._nextSvcDue - b._nextSvcDue;
+      return 0;
+    });
+  if (countEl) countEl.innerHTML = `<strong>${list.length}</strong> customers &nbsp;·&nbsp; <strong style="color:var(--amber)">${list.filter(c=>c._serviceAlert).length} service alerts</strong>`;
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">📋</div><p>No assignments.</p><small>Load customer data to see service assignments.</small></div>`;
+    return;
+  }
+  el.innerHTML = list.map((c, i) => {
+    const alertCls = c._serviceAlert ? 'border-left-color:var(--amber)' : 'border-left-color:var(--green)';
+    const d = c._svcDueDays;
+    const dStr = d === null ? '–' : d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `in ${d}d`;
+    const dClr = d !== null && d <= 0 ? 'var(--red)' : d !== null && d <= 14 ? 'var(--amber)' : 'var(--green)';
+    const assignTo = (c['Assigned To'] || '').trim();
+    return `<div class="ac" style="${alertCls}">
+      <div class="ac-top">
+        <div class="ac-info">
+          <h3>${esc(c['Customer Name']||'–')} ${c._serviceAlert?'<span class="bdg bdg-svc">Svc Due</span>':''}</h3>
+          <div class="meta">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')}</div>
+          ${c['Address']?`<div class="meta" style="font-size:12px">🏠 ${esc(c['Address'])}</div>`:''}
+          <div class="meta">Next svc: <strong>${fmtDate(c._nextSvcDue)}</strong> &nbsp;·&nbsp; <strong style="color:${dClr}">${dStr}</strong>${c._svcDays!==null?` &nbsp;·&nbsp; Last: ${c._svcDays}d ago`:''}</div>
+          ${assignTo?`<div class="meta">👤 ${esc(assignTo)}</div>`:''}
+        </div>
+        <div class="ac-btns">
+          <button class="btn-copy ok" onclick="markServiced(${_editList.findIndex(x=>x===c)>=0?_editList.findIndex(x=>x===c):0})">🔧 Mark Done</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
 // ANALYTICS
 // ════════════════════════════════════════════════
 function renderAnalytics() {
@@ -2598,6 +2738,7 @@ function deleteLeadModal() {
 const USERS = {
   owner:      { pin: '1234', role: 'admin',      label: 'Owner' },
   admin2:     { pin: '5678', role: 'admin',      label: 'Admin 2' },
+  sales:      { pin: '1111', role: 'sales',      label: 'Sales' },
   technician: { pin: '9999', role: 'technician', label: 'Technician' }
 };
 
@@ -2616,15 +2757,18 @@ function doLogin() {
   localStorage.setItem('xh2o_session', JSON.stringify({ username, role: user.role }));
   document.getElementById('loginScreen').style.display = 'none';
   _showLogoutBtn(user.label);
+  applyRoleVisibility();
   appStart();
 }
 
 function doLogout() {
   localStorage.removeItem('xh2o_session');
   document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('loginPin').value = '';
   document.getElementById('loginError').style.display = 'none';
+  // Reset tab visibility for next login
+  document.querySelectorAll('.tab').forEach(t => t.style.display = '');
+  closeMobileMenu();
 }
 
 function _showLogoutBtn(label) {
@@ -2650,8 +2794,50 @@ function checkSession() {
     if (!USERS[s.username]) return false;
     _showLogoutBtn(USERS[s.username].label);
     document.getElementById('loginScreen').style.display = 'none';
+    applyRoleVisibility();
     return true;
   } catch(e) { return false; }
+}
+
+function applyRoleVisibility() {
+  try {
+    const raw = localStorage.getItem('xh2o_session');
+    if (!raw) return;
+    const { role } = JSON.parse(raw);
+    const tabs  = document.querySelectorAll('.tab');
+    // Admin sees everything
+    if (role === 'admin') {
+      tabs.forEach(t => t.style.display = '');
+      return;
+    }
+    // Sales: Dashboard + Sales only
+    if (role === 'sales') {
+      tabs.forEach(t => {
+        const id = t.dataset.tab;
+        t.style.display = (id === 'dash' || id === 'sales') ? '' : 'none';
+      });
+      _activateTab('sales');
+      return;
+    }
+    // Technician: Assignments only
+    if (role === 'technician') {
+      tabs.forEach(t => {
+        t.style.display = t.dataset.tab === 'assign' ? '' : 'none';
+      });
+      _activateTab('assign');
+      return;
+    }
+  } catch(e) {}
+}
+
+function _activateTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
+  const pane = document.getElementById('pane-' + id);
+  if (pane) pane.classList.add('on');
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.dataset.tab === id) t.classList.add('on');
+  });
 }
 
 function appStart() {
