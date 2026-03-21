@@ -160,6 +160,9 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .bdg-unpaid{background:#6a1b9a;color:#fff}
 .bdg-svc{background:#f57f17;color:#fff}
 .bdg-svcdone{background:var(--green);color:#fff}
+.bdg-res{background:#1565c0;color:#fff}
+.bdg-com{background:#546e7a;color:#fff}
+.bdg-ind{background:#e65100;color:#fff}
 .btn-svc{padding:4px 9px;background:#e8f5e9;border:1.5px solid #a5d6a7;color:var(--green);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;display:inline-block;margin-top:3px}
 .btn-svc:hover{background:var(--green);color:#fff}
 .svc-history-item{padding:8px 12px;background:#e8f5e9;border-left:3px solid var(--green);border-radius:0 8px 8px 0;margin-bottom:6px;font-size:12px;line-height:1.5}
@@ -466,7 +469,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   </div>
   <div class="col-hint">
     <strong>Expected columns (in any order):</strong>
-    <p>Customer Name · Phone Number · Area · Install Date · AMC Duration (months) · Product · AMC Amount (₹) · Payment Status · Last Service Date · Service Calls (lifetime) · Service Interval (months) · Notes</p>
+    <p>Customer Name · Phone Number · Phone 2 · Area · Address · Install Date · AMC Duration (months) · Product · Category · AMC Amount (₹) · Payment Status · Last Service Date · Service Calls (lifetime) · Service Interval (months) · Notes</p>
   </div>
 </div>
 
@@ -547,6 +550,10 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <div class="card" id="areaCard"><h3>📍 Revenue by Area</h3><div id="areaChart"></div></div>
       <div class="card" id="prodCard"><h3>🔧 Revenue by Product</h3><div id="prodChart"></div></div>
     </div>
+    <div class="analytics-row">
+      <div class="card"><h3>🏷️ Revenue by Category</h3><div id="catChart"></div></div>
+      <div class="card" style="visibility:hidden"></div>
+    </div>
     <div class="card" style="margin-bottom:16px">
       <h3>📅 Upcoming Renewal Revenue (Next 12 Months)</h3>
       <div id="monthChart" style="margin-top:4px"></div>
@@ -572,6 +579,10 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   <div class="edit-box">
     <h3>✏️ Edit Customer</h3>
     <p class="edit-sub" id="editSubtitle"></p>
+    <div class="ef">
+      <label>Phone 2 (optional)</label>
+      <input type="tel" id="ef-phone2" placeholder="e.g. 9876543210">
+    </div>
 
     <div class="ef-section-hdr">🔄 Renewal</div>
     <div class="ef">
@@ -640,6 +651,21 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     <div class="ef">
       <label>Service Calls (lifetime)</label>
       <input type="number" id="ef-calls" min="0" placeholder="e.g. 5">
+    </div>
+
+    <div class="ef-section-hdr">📍 Location</div>
+    <div class="ef">
+      <label>Address (optional)</label>
+      <textarea id="ef-address" placeholder="Street, Building, Landmark…" style="min-height:56px"></textarea>
+    </div>
+    <div class="ef">
+      <label>Category</label>
+      <select id="ef-category">
+        <option value="">— Not Set —</option>
+        <option value="Residential">Residential</option>
+        <option value="Commercial">Commercial</option>
+        <option value="Industrial">Industrial</option>
+      </select>
     </div>
 
     <div class="ef-section-hdr">📝 Notes</div>
@@ -1321,6 +1347,9 @@ function openEditModal(idx) {
   document.getElementById('ef-svc-interval').value = String(c.svcInterval || 1);
   document.getElementById('ef-calls').value         = c['Service Calls (lifetime)'] || '';
   document.getElementById('ef-notes').value         = c['Notes'] || '';
+  document.getElementById('ef-phone2').value        = c['Phone 2'] || '';
+  document.getElementById('ef-address').value       = c['Address'] || '';
+  document.getElementById('ef-category').value      = c['Category'] || '';
   document.getElementById('ef-log-input').value     = '';
   updateSvcNextDisplay();
   const lk = custLogKey(c);
@@ -1378,7 +1407,10 @@ function saveEditModal() {
     'Last Service Date':         svcRaw ? inputToDate(svcRaw) : '',
     'Service Interval (months)': document.getElementById('ef-svc-interval').value,
     'Service Calls (lifetime)':  document.getElementById('ef-calls').value,
-    'Notes':                     document.getElementById('ef-notes').value
+    'Notes':                     document.getElementById('ef-notes').value,
+    'Phone 2':                   document.getElementById('ef-phone2').value,
+    'Address':                   document.getElementById('ef-address').value,
+    'Category':                  document.getElementById('ef-category').value
   };
   const csVal = document.getElementById('ef-contact').value;
   const cskey = c._editKey;
@@ -1575,8 +1607,9 @@ function renderDash() {
     return `<tr class="r-${col}">
       <td>${i+1}</td>
       <td><span class="cname">${esc(c['Customer Name']||'–')}${svcBdg}${editBdg}</span></td>
-      <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}</td>
-      ${srcTag}<td>${esc(c['Area']||'–')}</td><td>${esc(c['Product']||'–')}</td>
+      <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}${c['Phone 2']?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(c['Phone 2'])}</div>`:''}</td>
+      ${srcTag}<td title="${esc(c['Address']||'')}" style="cursor:${c['Address']?'help':'default'}">${esc(c['Area']||'–')}</td>
+      <td>${esc(c['Product']||'–')}${c['Category']?` <span class="bdg bdg-${c['Category']==='Residential'?'res':c['Category']==='Commercial'?'com':'ind'}" style="font-size:10px;margin-left:3px">${c['Category'].slice(0,3).toUpperCase()}</span>`:''}</td>
       <td><div style="font-weight:600;white-space:nowrap">${fmtDate(c._due)}</div>${c._inst?`<div style="font-size:11px;color:var(--muted);white-space:nowrap">from ${fmtDate(c._inst)}</div>`:''}</td><td>${dl}</td>
       <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
       <td>${payBadge(c)}</td>
@@ -1623,8 +1656,9 @@ function renderDashGrouped(list, isAllFiles, colMap, body, cols) {
       html += `<tr class="r-${col}">
         <td>${i+1}</td>
         <td><span class="cname">${esc(c['Customer Name']||'–')} ${svcBdg}${editBdg}</span></td>
-        <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}</td>
-        ${srcTag}<td>${esc(c['Area']||'–')}</td><td>${esc(c['Product']||'–')}</td>
+        <td style="font-size:12px;color:var(--muted)">${esc(c['Phone Number']||'–')}${c['Phone 2']?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(c['Phone 2'])}</div>`:''}</td>
+        ${srcTag}<td title="${esc(c['Address']||'')}" style="cursor:${c['Address']?'help':'default'}">${esc(c['Area']||'–')}</td>
+        <td>${esc(c['Product']||'–')}${c['Category']?` <span class="bdg bdg-${c['Category']==='Residential'?'res':c['Category']==='Commercial'?'com':'ind'}" style="font-size:10px;margin-left:3px">${c['Category'].slice(0,3).toUpperCase()}</span>`:''}</td>
         <td><div style="font-weight:600;white-space:nowrap">${fmtDate(c._due)}</div>${c._inst?`<div style="font-size:11px;color:var(--muted);white-space:nowrap">from ${fmtDate(c._inst)}</div>`:''}</td><td>${dl}</td>
         <td>${fmtMoney(parseAmount(c['AMC Amount (₹)']))}</td>
         <td>${payBadge(c)}</td>
@@ -1708,7 +1742,7 @@ function exportCSV() {
     return true;
   });
   if (!list.length) { showToast('Nothing to export'); return; }
-  const heads = ['Customer Name','Phone Number','Area','Install Date','AMC Duration (months)','Product','AMC Amount (₹)','Payment Status','Last Service Date','Service Calls (lifetime)','Notes','Due Date','Status','Days Left'];
+  const heads = ['Customer Name','Phone Number','Phone 2','Area','Address','Install Date','AMC Duration (months)','Product','Category','AMC Amount (₹)','Payment Status','Last Service Date','Service Calls (lifetime)','Notes','Due Date','Status','Days Left'];
   const csvRows = [heads.map(h=>`"${h}"`).join(',')];
   list.forEach(c => {
     const row = heads.map(h => {
@@ -1869,16 +1903,17 @@ function renderMessages() {
   document.getElementById('msgCount').innerHTML = `<strong>${customers.length}</strong> messages ready`;
   if (!customers.length) { el.innerHTML=`<div class="empty"><div class="ei">💬</div><p>No messages yet.</p></div>`; return; }
   el.innerHTML = customers.map((c,i) => {
-    const col=colMap[c.status]||'green', wa=waLink(c['Phone Number'],window._allMsgs[i]);
+    const col=colMap[c.status]||'green', wa=waLink(c['Phone Number'],window._allMsgs[i]), wa2=waLink(c['Phone 2'],window._allMsgs[i]);
     return `<div class="mc">
       <div class="mc-top">
         <div>
           <h3>${esc(c['Customer Name']||'–')} <span class="bdg bdg-${col}" style="font-size:10px">${c.status}</span></h3>
-          <div class="mc-sub">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')}</div>
+          <div class="mc-sub">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')}${c['Phone 2']?` &nbsp;·&nbsp; 📱 ${esc(c['Phone 2'])}`:''} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')}</div>
         </div>
         <div class="mc-btns">
           <button class="btn-copy" onclick="doCopy(this,'_allMsgs',${i})">📋 Copy</button>
           ${wa?`<a class="btn-wa" href="${wa}" target="_blank">💬 WA</a>`:''}
+          ${wa2?`<a class="btn-wa" href="${wa2}" target="_blank" style="background:#128c7e">💬 WA 2</a>`:''}
         </div>
       </div>
       <div class="msg-box">${esc(window._allMsgs[i])}</div>
@@ -1915,6 +1950,13 @@ function renderAnalytics() {
   const prods={};
   customers.forEach(c=>{const p=c['Product']||'Unknown';if(!prods[p])prods[p]=0;prods[p]+=parseAmount(c['AMC Amount (₹)']);});
   renderBarChart('prodChart', prods, 'bf-green');
+
+  // Category chart
+  const cats={'Residential':0,'Commercial':0,'Industrial':0,'Uncategorised':0};
+  customers.forEach(c=>{const cat=c['Category']||'Uncategorised';if(cats[cat]===undefined)cats[cat]=0;cats[cat]+=parseAmount(c['AMC Amount (₹)']);});
+  // Remove Uncategorised if zero
+  if (!cats['Uncategorised']) delete cats['Uncategorised'];
+  renderBarChart('catChart', cats, 'bf-blue');
 
   // Monthly revenue (next 12 months)
   const months={};
