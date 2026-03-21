@@ -339,6 +339,39 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .ef-renewal-feed{margin-top:4px}
 .ef-renewal-item{padding:8px 12px;background:#f0fdf4;border-left:3px solid var(--green);border-radius:0 8px 8px 0;margin-bottom:6px;font-size:12px;line-height:1.5}
 
+/* SALES PIPELINE */
+.sf-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;
+  font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap}
+.sf-btn:hover{border-color:var(--blue);color:var(--blue)}
+.sf-btn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.lead-card{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  border-left:5px solid var(--border);box-shadow:0 1px 5px rgba(0,0,0,.07);transition:.2s}
+.lead-card.pri-high{border-left-color:var(--red)}
+.lead-card.pri-med{border-left-color:var(--amber)}
+.lead-card.pri-low{border-left-color:var(--green)}
+.lead-card.closed{opacity:.5}
+.lead-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.lead-card-name{font-size:15px;font-weight:700;flex:1;line-height:1.3}
+.lead-card-badges{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+.lead-meta{font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:6px}
+.lead-followup{font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.lead-followup.overdue{background:var(--red-l);color:var(--red)}
+.lead-followup.today{background:var(--amber-l);color:var(--amber)}
+.lead-followup.upcoming{background:var(--green-l);color:var(--green)}
+.lead-followup.none{background:#f1f5f9;color:var(--muted)}
+.lead-notes{font-size:12px;color:var(--muted);font-style:italic;margin-bottom:8px;line-height:1.5}
+.lead-btns{display:flex;gap:7px;flex-wrap:wrap}
+/* Stage badges */
+.bdg-stage{background:#b0bec5;color:#37474f}
+.bdg-svs{background:var(--blue);color:#fff}
+.bdg-svd{background:#00695c;color:#fff}
+.bdg-quote{background:#6a1b9a;color:#fff}
+.bdg-follow{background:var(--amber);color:#fff}
+.bdg-won{background:var(--green);color:#fff}
+.bdg-lost{background:#616161;color:#fff}
+/* Lead modal */
+#leadModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;display:none;align-items:center;justify-content:center;padding:16px}
+#leadModal.open{display:flex}
 /* MOBILE MENU */
 #menuBtn{display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;padding:6px 10px}
 #mobileMenu{display:none;position:fixed;top:58px;right:12px;background:#fff;border-radius:12px;
@@ -441,6 +474,12 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   /* File bar */
   .fb-inner{gap:6px}
   .fb-label{display:none}
+  /* Lead buttons */
+  .lead-btns{flex-direction:column}
+  .lead-btns .btn-copy,.lead-btns .btn-wa,.lead-btns .btn-edit{width:100%;text-align:center;justify-content:center}
+  /* Sales filters */
+  .sales-filter-row{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .sales-filter-row::-webkit-scrollbar{display:none}
 }
 
 /* LOGIN SCREEN */
@@ -585,6 +624,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     <button class="tab" onclick="switchTab('msg',this)">💬 WhatsApp</button>
     <button class="tab" onclick="switchTab('analytics',this)">📈 Analytics</button>
     <button class="tab" onclick="switchTab('calendar',this)">📅 Calendar</button>
+    <button class="tab" onclick="switchTab('sales',this)">🔥 Sales</button>
   </div>
 
   <!-- TAB 1: Dashboard -->
@@ -667,6 +707,22 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <button class="btn-sm" onclick="clearCalFilter()" id="btnCalClear" style="display:none">✕ Clear Filter</button>
     </div>
     <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- TAB 6: Sales Pipeline -->
+  <div class="pane" id="pane-sales">
+    <div class="summary-bar" id="salesSummary"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div class="sales-filter-row" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="sf-btn on" onclick="setSalesFilter('all',this)">All</button>
+        <button class="sf-btn" onclick="setSalesFilter('open',this)">Open</button>
+        <button class="sf-btn" onclick="setSalesFilter('high',this)">⬆ High Priority</button>
+        <button class="sf-btn" onclick="setSalesFilter('overdue',this)">🔴 Overdue</button>
+        <button class="sf-btn" onclick="setSalesFilter('closed',this)">Closed</button>
+      </div>
+      <button class="btn-primary" style="margin-top:0;padding:8px 18px;font-size:13px;flex-shrink:0" onclick="openLeadModal(null)">＋ Add Lead</button>
+    </div>
+    <div id="leadList"></div>
   </div>
 </div>
 
@@ -797,10 +853,79 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   </div>
 </div>
 
+<!-- Lead Modal -->
+<div id="leadModal" onclick="if(event.target===this)closeLeadModal()">
+  <div class="edit-box" style="max-width:480px">
+    <h3 id="leadModalTitle">🔥 New Lead</h3>
+    <p class="edit-sub" id="leadModalSub">Fill in the lead details</p>
+
+    <div class="ef-section-hdr">👤 Contact</div>
+    <div class="ef"><label>Name *</label><input type="text" id="lf-name" placeholder="Full name"></div>
+    <div class="ef"><label>Phone *</label><input type="tel" id="lf-phone" placeholder="e.g. 9876543210"></div>
+    <div class="ef">
+      <label>Source</label>
+      <select id="lf-source">
+        <option>WhatsApp</option><option>Phone Call</option><option>Referral</option><option>Walk-in</option>
+      </select>
+    </div>
+
+    <div class="ef-section-hdr">🔧 Requirement</div>
+    <div class="ef">
+      <label>Product</label>
+      <select id="lf-product">
+        <option value="">— Select —</option>
+        <option>RO System</option><option>UV Purifier</option><option>Water Softener</option>
+        <option>Commercial RO</option><option>Industrial Filter</option><option>Sediment Filter</option>
+        <option>Antiscalant Dosing</option><option>Iron Removal Plant</option>
+      </select>
+    </div>
+    <div class="ef">
+      <label>Category</label>
+      <select id="lf-category">
+        <option value="">— Not Set —</option>
+        <option>Residential</option><option>Commercial</option><option>Industrial</option>
+      </select>
+    </div>
+
+    <div class="ef-section-hdr">📊 Pipeline</div>
+    <div class="ef">
+      <label>Stage</label>
+      <select id="lf-stage">
+        <option>New Lead</option><option>Site Visit Scheduled</option><option>Site Visit Done</option>
+        <option>Quote Sent</option><option>Follow-up</option><option>Closed Won</option><option>Closed Lost</option>
+      </select>
+    </div>
+    <div class="ef">
+      <label>Priority</label>
+      <select id="lf-priority">
+        <option>High</option><option selected>Medium</option><option>Low</option>
+      </select>
+    </div>
+    <div class="ef"><label>Next Follow-up Date</label><input type="date" id="lf-followup"></div>
+    <div class="ef"><label>Assigned To</label><input type="text" id="lf-assigned" placeholder="Salesperson name"></div>
+
+    <div class="ef-section-hdr">📝 Notes</div>
+    <div class="ef"><textarea id="lf-notes" placeholder="Site details, requirements, remarks…"></textarea></div>
+
+    <div class="edit-btns">
+      <button class="btn-esave" onclick="saveLeadModal()">💾 Save Lead</button>
+      <button class="btn-ecancel" onclick="closeLeadModal()">Cancel</button>
+      <button class="btn-ereset" id="lf-delete" style="display:none" onclick="deleteLeadModal()">🗑 Delete</button>
+    </div>
+    <div class="edit-sticky-save">
+      <button class="btn-esave" style="flex:1" onclick="saveLeadModal()">💾 Save Lead</button>
+      <button class="btn-ecancel" onclick="closeLeadModal()">✕</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════
+let leads         = [];      // [{id,name,phone,source,product,category,priority,stage,next_followup_date,assigned_to,notes,created_at}]
+let _salesFilter  = 'all';
+let _leadModalId  = null;
 let files         = [];      // [{id, name, csvText, customers}]
 let activeIdx     = -2;      // -2=unset, -1=all files, ≥0=specific file
 let customers     = [];      // always synced to active selection
@@ -1042,6 +1167,7 @@ function saveEdits()    { try { cloudSet('xh2o_edits',    JSON.stringify(rowEdit
 function saveRenewals() { try { cloudSet('xh2o_renewals', JSON.stringify(renewalHistory)); } catch(e) {} }
 function saveLog()      { try { cloudSet('xh2o_log',      JSON.stringify(activityLog));    } catch(e) {} }
 function saveSvcHistory(){ try { cloudSet('xh2o_svchist',  JSON.stringify(serviceHistory)); } catch(e) {} }
+function saveLeads()    { try { cloudSet('xh2o_leads',    JSON.stringify(leads));          } catch(e) {} }
 
 function custLogKey(c) { return c._editKey; }
 function addLogEntry(key, type, text) {
@@ -1064,6 +1190,7 @@ function loadStoredData() {
     const sl = localStorage.getItem('xh2o_log');      if (sl) activityLog    = JSON.parse(sl);
     const sh = localStorage.getItem('xh2o_svchist');  if (sh) serviceHistory = JSON.parse(sh);
     const su = localStorage.getItem('xh2o_sheet_url');if (su) sheetUrl = su;
+    const sld= localStorage.getItem('xh2o_leads');    if (sld) leads = JSON.parse(sld);
     const sf = localStorage.getItem('xh2o_files');
     if (!sf) return;
     const data = JSON.parse(sf);
@@ -1364,7 +1491,7 @@ function renderFileBar() {
 // ════════════════════════════════════════════════
 // RENDER ALL
 // ════════════════════════════════════════════════
-function renderAll() { renderSummary(); renderDash(); renderActions(); renderMessages(); renderAnalytics(); renderCalendar(); }
+function renderAll() { renderSummary(); renderDash(); renderActions(); renderMessages(); renderAnalytics(); renderCalendar(); renderSales(); }
 
 // ════════════════════════════════════════════════
 // SUMMARY
@@ -2277,6 +2404,192 @@ function loadDemo() {
   const rows=entries.map(e=>`"${e.name}","${e.phone}","${e.area}","${e.inst}","${e.dur}","${e.product}","${e.amt}","${e.pay}","${e.ls}","${e.sc}","${e.notes}"`).join('\n');
   const csv=headers+'\n'+rows;
   addFile(parseCSV(csv),'Sample Data.csv',csv);
+}
+
+// ════════════════════════════════════════════════
+// SALES PIPELINE
+// ════════════════════════════════════════════════
+function buildLeadMsg(lead) {
+  const name = (lead.name||'').trim();
+  const product = (lead.product||'Water Purifier').trim();
+  return `Namaste ${name} bhai/ben,\n\nXpertH2O tarf thi — *${product}* baabat vaat karavani hati. Avakar hoy to janavjo 🙏\n\n— Xpert H2O, Surat`;
+}
+
+function _stageBadgeClass(stage) {
+  const m = {'New Lead':'bdg-stage','Site Visit Scheduled':'bdg-svs','Site Visit Done':'bdg-svd',
+    'Quote Sent':'bdg-quote','Follow-up':'bdg-follow','Closed Won':'bdg-won','Closed Lost':'bdg-lost'};
+  return m[stage] || 'bdg-stage';
+}
+
+function _leadFollowupInfo(dateStr) {
+  if (!dateStr) return { cls:'none', label:'No follow-up set' };
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  const diff = Math.round((d - TODAY) / 86400000);
+  if (diff < 0)  return { cls:'overdue',  label:`📅 Follow-up: ${_fmtLeadDate(dateStr)} (${Math.abs(diff)}d overdue)` };
+  if (diff === 0) return { cls:'today',   label:`📅 Follow-up: Today` };
+  return { cls:'upcoming', label:`📅 Follow-up: ${_fmtLeadDate(dateStr)} (in ${diff}d)` };
+}
+
+function _fmtLeadDate(iso) {
+  if (!iso) return '–';
+  const [y,m,d] = iso.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function setSalesFilter(f, btn) {
+  _salesFilter = f;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderSales();
+}
+
+function renderSales() {
+  // Summary
+  const today0 = new Date(TODAY);
+  const monthStart = new Date(today0.getFullYear(), today0.getMonth(), 1);
+  const openLeads = leads.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
+  const highCount = openLeads.filter(l => l.priority === 'High').length;
+  const overdueCount = openLeads.filter(l => l.next_followup_date && new Date(l.next_followup_date) <= TODAY).length;
+  const wonMonth = leads.filter(l => l.stage === 'Closed Won' && l.created_at && new Date(l.created_at) >= monthStart).length;
+  document.getElementById('salesSummary').innerHTML = `
+    <div class="pill pill-gray clickable" onclick="setSalesFilter('all',document.querySelector('.sf-btn'))">${leads.length} Total Leads</div>
+    <div class="pill pill-red">${highCount} High Priority</div>
+    <div class="pill pill-amber">${overdueCount} Overdue Follow-up</div>
+    <div class="pill pill-green">${wonMonth} Won This Month</div>`;
+
+  // Filter
+  let list = [...leads];
+  if (_salesFilter === 'open')    list = list.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
+  if (_salesFilter === 'high')    list = list.filter(l => l.priority === 'High');
+  if (_salesFilter === 'overdue') list = list.filter(l => l.next_followup_date && new Date(l.next_followup_date) <= TODAY && l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
+  if (_salesFilter === 'closed')  list = list.filter(l => l.stage === 'Closed Won' || l.stage === 'Closed Lost');
+
+  // Sort: priority order, then next_followup_date asc, closed at bottom
+  const priOrder = { High:0, Medium:1, Low:2 };
+  const isClosed = l => l.stage === 'Closed Won' || l.stage === 'Closed Lost';
+  list.sort((a,b) => {
+    if (isClosed(a) !== isClosed(b)) return isClosed(a) ? 1 : -1;
+    const pd = (priOrder[a.priority]||1) - (priOrder[b.priority]||1);
+    if (pd !== 0) return pd;
+    if (a.next_followup_date && b.next_followup_date) return a.next_followup_date.localeCompare(b.next_followup_date);
+    if (a.next_followup_date) return -1;
+    if (b.next_followup_date) return 1;
+    return 0;
+  });
+
+  const el = document.getElementById('leadList');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">🔥</div><p>No leads yet.</p><small>Click <strong>+ Add Lead</strong> to get started.</small></div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(lead => {
+    const closed = isClosed(lead);
+    const priClass = lead.priority === 'High' ? 'pri-high' : lead.priority === 'Low' ? 'pri-low' : 'pri-med';
+    const priBdg = lead.priority === 'High' ? 'bdg-red' : lead.priority === 'Low' ? 'bdg-green' : 'bdg-amber';
+    const fu = _leadFollowupInfo(lead.next_followup_date);
+    const wa = waLink(lead.phone, buildLeadMsg(lead));
+    const catBadge = lead.category ? ` <span class="bdg bdg-${lead.category==='Residential'?'res':lead.category==='Commercial'?'com':'ind'}" style="font-size:10px">${lead.category.slice(0,3).toUpperCase()}</span>` : '';
+    return `<div class="lead-card ${priClass}${closed?' closed':''}">
+      <div class="lead-card-top">
+        <div class="lead-card-name">${esc(lead.name||'–')}</div>
+        <div class="lead-card-badges">
+          <span class="bdg ${priBdg}">${lead.priority}</span>
+          <span class="bdg ${_stageBadgeClass(lead.stage)}">${esc(lead.stage||'New Lead')}</span>
+        </div>
+      </div>
+      <div class="lead-meta">
+        📞 ${esc(lead.phone||'–')} &nbsp;·&nbsp; 📥 ${esc(lead.source||'–')}
+        ${lead.product ? ` &nbsp;·&nbsp; 🔧 ${esc(lead.product)}${catBadge}` : ''}
+        ${lead.assigned_to ? `<br>👤 ${esc(lead.assigned_to)}` : ''}
+      </div>
+      <div class="lead-followup ${fu.cls}">${fu.label}</div>
+      ${lead.notes ? `<div class="lead-notes">"${esc(lead.notes)}"</div>` : ''}
+      <div class="lead-btns">
+        ${wa ? `<a class="btn-wa" href="${wa}" target="_blank">💬 WhatsApp</a>` : ''}
+        <button class="btn-edit" onclick="openLeadModal('${lead.id}')">✏️ Edit</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openLeadModal(id) {
+  _leadModalId = id;
+  const del = document.getElementById('lf-delete');
+  if (id) {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+    document.getElementById('leadModalTitle').textContent = '✏️ Edit Lead';
+    document.getElementById('leadModalSub').textContent = lead.name || '';
+    document.getElementById('lf-name').value       = lead.name || '';
+    document.getElementById('lf-phone').value      = lead.phone || '';
+    document.getElementById('lf-source').value     = lead.source || 'WhatsApp';
+    document.getElementById('lf-product').value    = lead.product || '';
+    document.getElementById('lf-category').value   = lead.category || '';
+    document.getElementById('lf-stage').value      = lead.stage || 'New Lead';
+    document.getElementById('lf-priority').value   = lead.priority || 'Medium';
+    document.getElementById('lf-followup').value   = lead.next_followup_date || '';
+    document.getElementById('lf-assigned').value   = lead.assigned_to || '';
+    document.getElementById('lf-notes').value      = lead.notes || '';
+    del.style.display = '';
+  } else {
+    document.getElementById('leadModalTitle').textContent = '🔥 New Lead';
+    document.getElementById('leadModalSub').textContent = 'Fill in the lead details';
+    document.getElementById('lf-name').value = '';
+    document.getElementById('lf-phone').value = '';
+    document.getElementById('lf-source').value = 'WhatsApp';
+    document.getElementById('lf-product').value = '';
+    document.getElementById('lf-category').value = '';
+    document.getElementById('lf-stage').value = 'New Lead';
+    document.getElementById('lf-priority').value = 'Medium';
+    document.getElementById('lf-followup').value = '';
+    document.getElementById('lf-assigned').value = '';
+    document.getElementById('lf-notes').value = '';
+    del.style.display = 'none';
+  }
+  document.getElementById('leadModal').classList.add('open');
+}
+
+function closeLeadModal() {
+  document.getElementById('leadModal').classList.remove('open');
+  _leadModalId = null;
+}
+
+function saveLeadModal() {
+  const name  = document.getElementById('lf-name').value.trim();
+  const phone = document.getElementById('lf-phone').value.trim();
+  if (!name) { showToast('⚠️ Name is required'); return; }
+  const data = {
+    name, phone,
+    source:             document.getElementById('lf-source').value,
+    product:            document.getElementById('lf-product').value,
+    category:           document.getElementById('lf-category').value,
+    stage:              document.getElementById('lf-stage').value,
+    priority:           document.getElementById('lf-priority').value,
+    next_followup_date: document.getElementById('lf-followup').value,
+    assigned_to:        document.getElementById('lf-assigned').value.trim(),
+    notes:              document.getElementById('lf-notes').value.trim()
+  };
+  if (_leadModalId) {
+    const idx = leads.findIndex(l => l.id === _leadModalId);
+    if (idx >= 0) { leads[idx] = { ...leads[idx], ...data }; }
+  } else {
+    leads.push({ id: String(Date.now()), created_at: new Date().toISOString(), ...data });
+  }
+  saveLeads();
+  closeLeadModal();
+  renderSales();
+  showToast(_leadModalId ? '✅ Lead updated' : '✅ Lead added');
+}
+
+function deleteLeadModal() {
+  if (!_leadModalId) return;
+  leads = leads.filter(l => l.id !== _leadModalId);
+  saveLeads();
+  closeLeadModal();
+  renderSales();
+  showToast('🗑 Lead deleted');
 }
 
 // ════════════════════════════════════════════════
