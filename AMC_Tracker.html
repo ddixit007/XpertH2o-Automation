@@ -405,6 +405,42 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .edit-sticky-save{display:none;position:sticky;bottom:0;left:0;right:0;background:#fff;
   padding:12px 16px;border-top:1px solid var(--border);gap:8px;z-index:10}
 
+/* SERVICE REPORT MODAL */
+#svcModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;display:none;align-items:center;justify-content:center;padding:16px}
+#svcModal.open{display:flex}
+.sm-cond-btn{flex:1;padding:8px 4px;border-radius:8px;border:2px solid var(--border);background:#fff;
+  color:var(--muted);font-weight:700;font-size:12px;cursor:pointer;transition:.15s;text-align:center}
+.sm-cond-btn.active-good{border-color:var(--green)!important;background:#e8f5e9!important;color:var(--green)!important}
+.sm-cond-btn.active-warn{border-color:var(--amber)!important;background:var(--amber-l)!important;color:var(--amber)!important}
+.sm-cond-btn.active-crit{border-color:var(--red)!important;background:var(--red-l)!important;color:var(--red)!important}
+.parts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.parts-grid label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;
+  padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:#f8fafc;transition:.15s}
+.parts-grid label:hover{border-color:var(--blue);background:var(--blue-l)}
+.parts-grid input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue);flex-shrink:0}
+.tds-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+/* BREAKDOWN MODAL */
+#breakdownModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;display:none;align-items:center;justify-content:center;padding:16px}
+#breakdownModal.open{display:flex}
+/* BREAKDOWN CARDS */
+.bd-card{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  border-left:5px solid var(--red);box-shadow:0 1px 5px rgba(0,0,0,.07)}
+.bd-card.bd-resolved{border-left-color:var(--green);opacity:.6}
+.bd-priority-high{border-left-color:var(--red)}
+.bd-priority-med{border-left-color:var(--amber)}
+.bd-priority-low{border-left-color:#78909c}
+/* VISIT HISTORY (rich) */
+.svc-visit-card{background:#f0fdf4;border-left:3px solid var(--green);border-radius:0 8px 8px 0;margin-bottom:8px;padding:10px 13px;font-size:12px;line-height:1.7}
+.svc-visit-card.cond-warn{background:var(--amber-l);border-left-color:var(--amber)}
+.svc-visit-card.cond-crit{background:var(--red-l);border-left-color:var(--red)}
+.svc-visit-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px}
+.svc-visit-hdr strong{font-size:13px}
+/* PERFORMANCE */
+.perf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.perf-card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-top:4px solid var(--blue)}
+.perf-val{font-size:28px;font-weight:800;color:var(--text)}
+.perf-name{font-size:13px;font-weight:700;color:var(--text);margin-top:4px}
+.perf-sub{font-size:11px;color:var(--muted);margin-top:2px}
 /* PRINT */
 @media print{
   #fileBar,#toast,.tabs,.filter-bar,.bulk-bar,.btn-copy,.btn-wa,.ac-btns,.status-row,
@@ -627,6 +663,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     <button class="tab" data-tab="calendar" onclick="switchTab('calendar',this)">📅 Calendar</button>
     <button class="tab" data-tab="sales" onclick="switchTab('sales',this)">🔥 Sales</button>
     <button class="tab" data-tab="assign" onclick="switchTab('assign',this)">📋 Assignments</button>
+    <button class="tab" data-tab="breakdowns" onclick="switchTab('breakdowns',this)">🚨 Breakdowns</button>
   </div>
 
   <!-- TAB 1: Dashboard -->
@@ -713,6 +750,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <h3>⚠️ Service Overdue Alerts <span id="svcAlertCount" style="font-weight:400;color:var(--muted);font-size:12px"></span></h3>
       <div id="svcAlertList" style="margin-top:12px"></div>
     </div>
+    <div id="perfSection"></div>
   </div>
 
   <!-- TAB 5: Calendar -->
@@ -746,6 +784,15 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <p id="assignCount"></p>
     </div>
     <div id="assignList"></div>
+  </div>
+
+  <!-- TAB 8: Breakdowns -->
+  <div class="pane" id="pane-breakdowns">
+    <div class="bulk-bar">
+      <p id="breakdownCount"></p>
+      <div class="bulk-btns" id="breakdownAdminBtns"></div>
+    </div>
+    <div id="breakdownList"></div>
   </div>
 </div>
 
@@ -943,6 +990,103 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
   </div>
 </div>
 
+<!-- Service Report Modal -->
+<div id="svcModal" onclick="if(event.target===this)closeSvcModal()">
+  <div class="edit-box" style="max-width:480px">
+    <h3>📋 Service Report</h3>
+    <p class="edit-sub" id="svcModalSub">Fill in the visit details</p>
+
+    <div class="ef-section-hdr">📅 Visit Details</div>
+    <div class="ef"><label>Date</label><input type="date" id="sm-date"></div>
+    <div class="ef">
+      <label>Visit Type</label>
+      <select id="sm-type">
+        <option>Preventive Service</option>
+        <option>Breakdown / Repair</option>
+        <option>Filter Change</option>
+        <option>Installation</option>
+        <option>Follow-up</option>
+      </select>
+    </div>
+    <div class="ef"><label>Technician</label><input type="text" id="sm-tech" placeholder="Technician name"></div>
+
+    <div class="ef-section-hdr">🔧 Work Done</div>
+    <div class="ef"><textarea id="sm-work" style="min-height:72px" placeholder="Describe the work done during this visit…"></textarea></div>
+
+    <div class="ef-section-hdr">🔩 Parts Replaced</div>
+    <div class="parts-grid">
+      <label><input type="checkbox" id="sm-p-filter"> Filter Set</label>
+      <label><input type="checkbox" id="sm-p-membrane"> Membrane (RO)</label>
+      <label><input type="checkbox" id="sm-p-uv"> UV Lamp</label>
+      <label><input type="checkbox" id="sm-p-pump"> Pump</label>
+      <label><input type="checkbox" id="sm-p-solenoid"> Solenoid Valve</label>
+      <label><input type="checkbox" id="sm-p-other" onchange="document.getElementById('sm-p-other-wrap').style.display=this.checked?'':'none'"> Other</label>
+    </div>
+    <div class="ef" id="sm-p-other-wrap" style="display:none">
+      <label>Other (describe)</label>
+      <input type="text" id="sm-p-other-text" placeholder="e.g. Carbon block, Housing cap…">
+    </div>
+
+    <div class="ef-section-hdr">💧 TDS Reading</div>
+    <div class="tds-grid">
+      <div class="ef" style="margin-bottom:0"><label>Before (ppm)</label><input type="number" id="sm-tds-before" placeholder="e.g. 480" min="0"></div>
+      <div class="ef" style="margin-bottom:0"><label>After (ppm)</label><input type="number" id="sm-tds-after" placeholder="e.g. 22" min="0"></div>
+    </div>
+
+    <div class="ef-section-hdr" style="margin-top:16px">🔎 Machine Condition</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button type="button" class="sm-cond-btn" id="scb-good"   onclick="setSvcCondition('Good')"           >✅ Good</button>
+      <button type="button" class="sm-cond-btn" id="scb-warn"   onclick="setSvcCondition('Needs Attention')" >⚠️ Attention</button>
+      <button type="button" class="sm-cond-btn" id="scb-crit"   onclick="setSvcCondition('Critical')"       >🔴 Critical</button>
+    </div>
+
+    <div class="ef-section-hdr">📝 Notes</div>
+    <div class="ef"><textarea id="sm-notes" placeholder="Customer feedback, follow-up required, etc.…"></textarea></div>
+
+    <div class="edit-btns">
+      <button class="btn-esave" onclick="saveSvcReport()">💾 Save Report</button>
+      <button class="btn-ecancel" onclick="closeSvcModal()">Cancel</button>
+    </div>
+    <div class="edit-sticky-save">
+      <button class="btn-esave" style="flex:1" onclick="saveSvcReport()">💾 Save Report</button>
+      <button class="btn-ecancel" onclick="closeSvcModal()">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Breakdown Log Modal (admin only) -->
+<div id="breakdownModal" onclick="if(event.target===this)closeBreakdownModal()">
+  <div class="edit-box" style="max-width:440px">
+    <h3>🚨 Log Breakdown Call</h3>
+    <p class="edit-sub">Customer has reported an issue</p>
+    <div class="ef">
+      <label>Customer *</label>
+      <select id="bm-customer" onchange="fillBreakdownCustomer()">
+        <option value="">— Select Customer —</option>
+      </select>
+    </div>
+    <div class="ef"><label>Phone</label><input type="text" id="bm-phone" readonly style="background:#f8fafc;color:var(--muted)"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="ef"><label>Area</label><input type="text" id="bm-area" readonly style="background:#f8fafc;color:var(--muted)"></div>
+      <div class="ef"><label>Product</label><input type="text" id="bm-product" readonly style="background:#f8fafc;color:var(--muted)"></div>
+    </div>
+    <div class="ef">
+      <label>Issue Description *</label>
+      <textarea id="bm-issue" placeholder="What is the customer reporting? Machine not working, taste issue, leak…"></textarea>
+    </div>
+    <div class="ef">
+      <label>Priority</label>
+      <select id="bm-priority">
+        <option>High</option><option selected>Medium</option><option>Low</option>
+      </select>
+    </div>
+    <div class="edit-btns">
+      <button class="btn-esave" style="background:var(--red)" onclick="saveBreakdown()">🚨 Log Breakdown</button>
+      <button class="btn-ecancel" onclick="closeBreakdownModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════
 // STATE
@@ -966,6 +1110,9 @@ let _editList     = [];      // last rendered dash list for modal indexing
 let _editModalIdx = -1;
 let _actionList   = [];      // last rendered action list for quick renew indexing
 let _assignRenderList = [];  // last rendered assignments list for tech actions
+let breakdowns        = [];  // [{id,editKey,fileId,customerName,phone,area,product,issue,priority,reportedAt,reportedBy,status,resolvedAt}]
+let _svcReportCtx     = null; // {c, breakdownId} — customer being serviced
+let _svcCondition     = 'Good'; // current selection in service report modal
 const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
 
 // ════════════════════════════════════════════════
@@ -1192,7 +1339,8 @@ function saveEdits()    { try { cloudSet('xh2o_edits',    JSON.stringify(rowEdit
 function saveRenewals() { try { cloudSet('xh2o_renewals', JSON.stringify(renewalHistory)); } catch(e) {} }
 function saveLog()      { try { cloudSet('xh2o_log',      JSON.stringify(activityLog));    } catch(e) {} }
 function saveSvcHistory(){ try { cloudSet('xh2o_svchist',  JSON.stringify(serviceHistory)); } catch(e) {} }
-function saveLeads()    { try { cloudSet('xh2o_leads',    JSON.stringify(leads));          } catch(e) {} }
+function saveLeads()      { try { cloudSet('xh2o_leads',      JSON.stringify(leads));      } catch(e) {} }
+function saveBreakdowns() { try { cloudSet('xh2o_breakdowns', JSON.stringify(breakdowns)); } catch(e) {} }
 
 function custLogKey(c) { return c._editKey; }
 function addLogEntry(key, type, text) {
@@ -1216,6 +1364,7 @@ function loadStoredData() {
     const sh = localStorage.getItem('xh2o_svchist');  if (sh) serviceHistory = JSON.parse(sh);
     const su = localStorage.getItem('xh2o_sheet_url');if (su) sheetUrl = su;
     const sld= localStorage.getItem('xh2o_leads');    if (sld) leads = JSON.parse(sld);
+    const sbd= localStorage.getItem('xh2o_breakdowns'); if (sbd) breakdowns = JSON.parse(sbd);
     const sf = localStorage.getItem('xh2o_files');
     if (!sf) return;
     const data = JSON.parse(sf);
@@ -1516,7 +1665,7 @@ function renderFileBar() {
 // ════════════════════════════════════════════════
 // RENDER ALL
 // ════════════════════════════════════════════════
-function renderAll() { renderSummary(); renderDash(); renderActions(); renderMessages(); renderAnalytics(); renderCalendar(); renderSales(); renderAssignments(); }
+function renderAll() { renderSummary(); renderDash(); renderActions(); renderMessages(); renderAnalytics(); renderCalendar(); renderSales(); renderAssignments(); renderBreakdowns(); }
 
 // ════════════════════════════════════════════════
 // SUMMARY
@@ -1610,7 +1759,7 @@ function openEditModal(idx) {
   const lk = custLogKey(c);
   renderModalLog(lk);
   renderModalHistory(lk);
-  renderModalServiceHistory(lk);
+  renderModalServiceHistory(lk, c);
   document.getElementById('editModal').classList.add('open');
 }
 function renderModalLog(key) {
@@ -1791,15 +1940,46 @@ function markServicedNow() {
   document.getElementById('ef-svc').value = new Date().toISOString().slice(0,10);
   updateSvcNextDisplay();
 }
-function renderModalServiceHistory(key) {
+function renderModalServiceHistory(key, c) {
   const entries = serviceHistory[key] || [];
   const sec = document.getElementById('ef-service-section');
   if (!sec) return;
   if (!entries.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
-  document.getElementById('ef-service-feed').innerHTML = entries.map(e =>
-    `<div class="svc-history-item">🔧 <strong>${esc(e.date)}</strong>${e.notes?' · '+esc(e.notes):''}<br><span style="color:var(--muted);font-size:11px">${fmtLogTs(e.ts)}</span></div>`
-  ).join('');
+
+  // Count visits within current AMC period
+  let amcVisits = 0, amcExpected = 0;
+  if (c && c._inst && c._due) {
+    const dur = parseInt(c['AMC Duration (months)']) || 12;
+    const interval = parseInt(c['Service Interval (months)']) || 3;
+    amcExpected = Math.floor(dur / interval);
+    amcVisits = entries.filter(e => {
+      const d = parseDate(e.date);
+      return d && d >= c._inst && d <= c._due;
+    }).length;
+  }
+  const counterHtml = amcExpected
+    ? `<div style="background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;font-weight:700;color:var(--green)">
+         📊 ${amcVisits} of ${amcExpected} expected visits completed in current AMC
+       </div>` : '';
+
+  document.getElementById('ef-service-feed').innerHTML = counterHtml + entries.map(e => {
+    const condCls = e.condition === 'Critical' ? 'cond-crit' : e.condition === 'Needs Attention' ? 'cond-warn' : '';
+    const partsList = (e.parts||[]).length ? `<div>🔩 Parts: ${e.parts.map(esc).join(', ')}${e.parts_other?' + '+esc(e.parts_other):''}</div>` : '';
+    const tdsHtml = (e.tds_before||e.tds_after) ? `<div>💧 TDS: ${e.tds_before||'?'} → ${e.tds_after||'?'} ppm</div>` : '';
+    const condHtml = e.condition ? `<span class="bdg ${e.condition==='Good'?'bdg-svcdone':e.condition==='Critical'?'bdg-red':'bdg-svc'}" style="font-size:10px">${e.condition}</span>` : '';
+    return `<div class="svc-visit-card ${condCls}">
+      <div class="svc-visit-hdr">
+        <strong>🔧 ${esc(e.date)} — ${esc(e.type||'Service')}</strong>
+        ${condHtml}
+      </div>
+      ${e.technician?`<div>👤 ${esc(e.technician)}</div>`:''}
+      ${e.work_done?`<div>✅ ${esc(e.work_done)}</div>`:''}
+      ${partsList}${tdsHtml}
+      ${e.notes?`<div style="color:var(--muted);font-style:italic">${esc(e.notes)}</div>`:''}
+      <div style="color:var(--muted);font-size:11px;margin-top:3px">${fmtLogTs(e.ts)}</div>
+    </div>`;
+  }).join('');
 }
 
 // ════════════════════════════════════════════════
@@ -2003,8 +2183,8 @@ function renderTechDash(list) {
       <td style="font-size:12px;white-space:nowrap">${c._nextSvcDue ? fmtDate(c._nextSvcDue) : '–'}</td>
       <td>${dStr}</td>
       <td style="white-space:nowrap">
-        ${c._serviceAlert ? `<button class="btn-copy ok" style="font-size:11px;padding:4px 8px" onclick="markServiced(${i})">🔧 Done</button> ` : ''}
-        <button class="btn-sm" style="font-size:11px;padding:4px 8px" onclick="spotLeadFromCustomer(${i})">💡 Spot Lead</button>
+        <button class="btn-copy ok" style="font-size:11px;padding:4px 8px" onclick="openSvcModal(_editList[${i}])">📋 Svc Report</button>
+        <button class="btn-sm" style="font-size:11px;padding:4px 8px;margin-top:3px" onclick="spotLeadFromCustomer(${i})">💡 Lead</button>
       </td>
     </tr>`;
   }).join('');
@@ -2030,7 +2210,7 @@ function renderTechDash(list) {
         <span style="font-size:12px">Next svc: <strong>${c._nextSvcDue ? fmtDate(c._nextSvcDue) : '–'}</strong></span>
         <span style="color:${dClr};font-weight:700">${dStr}</span>
       </div>
-      ${c._serviceAlert ? `<button class="dc-edit" style="background:#e8f5e9;border-color:#a5d6a7;color:var(--green);margin-bottom:6px" onclick="markServiced(${i})">🔧 Mark Service Done</button>` : ''}
+      <button class="dc-edit" style="background:#e8f5e9;border-color:#a5d6a7;color:var(--green);margin-bottom:6px" onclick="openSvcModal(_editList[${i}])">📋 Service Report</button>
       <button class="dc-edit" style="background:#fef9e7;border-color:#f9ca24;color:#856404" onclick="spotLeadFromCustomer(${i})">💡 Spot Lead for Sales</button>
     </div>`;
   }).join('');
@@ -2423,7 +2603,7 @@ function renderAssignments() {
           ${assignTo?`<div class="meta">👤 Assigned: ${esc(assignTo)}</div>`:''}
         </div>
         <div class="ac-btns">
-          <button class="btn-copy ok" onclick="markServicedFromAssign(${i})">🔧 Mark Done</button>
+          <button class="btn-copy ok" onclick="openSvcModal(_assignRenderList[${i}])">📋 Service Report</button>
           <button class="btn-sm" onclick="spotLeadFromAssign(${i})" style="background:#fef9e7;border-color:#f9ca24;color:#856404">💡 Spot Lead</button>
         </div>
       </div>
@@ -2431,11 +2611,7 @@ function renderAssignments() {
   }).join('');
 }
 
-// Mark service done from the Assignments tab (uses _assignRenderList)
-function markServicedFromAssign(i) {
-  const c = _assignRenderList[i]; if (!c) return;
-  markServicedToday(c._editKey, c);
-}
+// (markServicedFromAssign replaced by openSvcModal — service reports capture full details)
 
 // ════════════════════════════════════════════════
 // ANALYTICS
@@ -2509,6 +2685,8 @@ function renderAnalytics() {
       <strong>${esc(c['Customer Name']||'–')}</strong> — ${esc(c['Product']||'–')} — 📍 ${esc(c['Area']||'–')}<br>
       <span style="color:var(--muted)">Next service: <strong>${fmtDate(c._nextSvcDue)}</strong>${c._svcDays!==null?' · Last: '+c._svcDays+' days ago':''} · Interval: every ${c.svcInterval} month(s)</span>
     </div>`).join('') : '<p style="color:var(--muted);font-size:13px">No service overdue alerts.</p>';
+
+  renderPerformance();
 }
 
 function renderBarChart(elId, dataObj, fillClass) {
@@ -2851,6 +3029,317 @@ function deleteLeadModal() {
 }
 
 // ════════════════════════════════════════════════
+// SERVICE REPORT MODAL
+// ════════════════════════════════════════════════
+function openSvcModal(c, breakdownId) {
+  if (!c) return;
+  _svcReportCtx = { c, breakdownId: breakdownId || null };
+  _svcCondition = 'Good';
+
+  // Default date to today
+  document.getElementById('sm-date').value = new Date().toISOString().slice(0, 10);
+  // Pre-fill type if breakdown
+  document.getElementById('sm-type').value = breakdownId ? 'Breakdown / Repair' : 'Preventive Service';
+  // Auto-fill technician from session
+  try {
+    const sess = JSON.parse(localStorage.getItem('xh2o_session') || '{}');
+    const label = (sess.username && USERS[sess.username]) ? USERS[sess.username].label : '';
+    document.getElementById('sm-tech').value = label;
+  } catch(e) { document.getElementById('sm-tech').value = ''; }
+  // Clear fields
+  document.getElementById('sm-work').value = '';
+  document.getElementById('sm-notes').value = '';
+  document.getElementById('sm-tds-before').value = '';
+  document.getElementById('sm-tds-after').value = '';
+  ['sm-p-filter','sm-p-membrane','sm-p-uv','sm-p-pump','sm-p-solenoid','sm-p-other'].forEach(id => {
+    document.getElementById(id).checked = false;
+  });
+  document.getElementById('sm-p-other-text').value = '';
+  document.getElementById('sm-p-other-wrap').style.display = 'none';
+  setSvcCondition('Good');
+
+  document.getElementById('svcModalSub').textContent = `${c['Customer Name']||'Customer'} · ${c['Product']||'–'} · ${c['Area']||'–'}`;
+  document.getElementById('svcModal').classList.add('open');
+}
+
+function closeSvcModal() {
+  document.getElementById('svcModal').classList.remove('open');
+  _svcReportCtx = null;
+}
+
+function setSvcCondition(val) {
+  _svcCondition = val;
+  document.getElementById('scb-good').className = 'sm-cond-btn' + (val === 'Good'           ? ' active-good' : '');
+  document.getElementById('scb-warn').className = 'sm-cond-btn' + (val === 'Needs Attention' ? ' active-warn' : '');
+  document.getElementById('scb-crit').className = 'sm-cond-btn' + (val === 'Critical'        ? ' active-crit' : '');
+}
+
+function saveSvcReport() {
+  if (!_svcReportCtx) return;
+  const { c, breakdownId } = _svcReportCtx;
+  const dateRaw = document.getElementById('sm-date').value;
+  if (!dateRaw) { showToast('⚠️ Please select a date'); return; }
+
+  // Collect parts
+  const partsMap = [
+    ['sm-p-filter',   'Filter Set'],
+    ['sm-p-membrane', 'Membrane (RO)'],
+    ['sm-p-uv',       'UV Lamp'],
+    ['sm-p-pump',     'Pump'],
+    ['sm-p-solenoid', 'Solenoid Valve'],
+  ];
+  const parts = partsMap.filter(([id]) => document.getElementById(id).checked).map(([,label]) => label);
+  const partsOther = document.getElementById('sm-p-other').checked ? document.getElementById('sm-p-other-text').value.trim() : '';
+
+  const entry = {
+    ts:          Date.now(),
+    date:        inputToDate(dateRaw),
+    type:        document.getElementById('sm-type').value,
+    technician:  document.getElementById('sm-tech').value.trim(),
+    work_done:   document.getElementById('sm-work').value.trim(),
+    parts,
+    parts_other: partsOther,
+    tds_before:  document.getElementById('sm-tds-before').value || '',
+    tds_after:   document.getElementById('sm-tds-after').value || '',
+    condition:   _svcCondition,
+    notes:       document.getElementById('sm-notes').value.trim(),
+  };
+
+  const ekey = c._editKey;
+  if (!serviceHistory[ekey]) serviceHistory[ekey] = [];
+  serviceHistory[ekey].unshift(entry);
+  saveSvcHistory();
+
+  // Update Last Service Date + increment Service Calls
+  if (!rowEdits[ekey]) rowEdits[ekey] = {};
+  rowEdits[ekey]['Last Service Date'] = entry.date;
+  const prevCalls = parseInt(c['Service Calls (lifetime)'] || rowEdits[ekey]['Service Calls (lifetime)'] || 0);
+  rowEdits[ekey]['Service Calls (lifetime)'] = String(prevCalls + 1);
+  saveEdits();
+
+  // Activity log
+  const parts_summary = parts.length ? ` | Parts: ${parts.join(', ')}${partsOther?' + '+partsOther:''}` : '';
+  const tds_summary = (entry.tds_before||entry.tds_after) ? ` | TDS: ${entry.tds_before||'?'}→${entry.tds_after||'?'}` : '';
+  addLogEntry(ekey, 'service', `🔧 ${entry.type} · ${entry.technician||'–'}${parts_summary}${tds_summary} · ${_svcCondition}`);
+
+  // If this resolves a breakdown, mark it closed
+  if (breakdownId) {
+    const bd = breakdowns.find(b => b.id === breakdownId);
+    if (bd) {
+      bd.status = 'resolved';
+      bd.resolvedAt = new Date().toISOString();
+      bd.resolvedBy = entry.technician || 'Technician';
+      saveBreakdowns();
+    }
+  }
+
+  reprocessFile(c._fileId);
+  closeSvcModal();
+  renderAll();
+  showToast('✅ Service report saved');
+}
+
+// ════════════════════════════════════════════════
+// BREAKDOWN QUEUE
+// ════════════════════════════════════════════════
+function renderBreakdowns() {
+  const el = document.getElementById('breakdownList');
+  const countEl = document.getElementById('breakdownCount');
+  const adminBtns = document.getElementById('breakdownAdminBtns');
+  if (!el) return;
+
+  const role = getCurrentRole();
+  const isAdmin = role === 'admin';
+
+  // Admin gets "Log Breakdown" button
+  if (adminBtns) {
+    adminBtns.innerHTML = isAdmin
+      ? `<button class="btn-sm" style="background:var(--red);color:#fff;border-color:var(--red)" onclick="openBreakdownModal()">🚨 Log Breakdown Call</button>`
+      : '';
+  }
+
+  const open   = breakdowns.filter(b => b.status === 'open');
+  const closed = breakdowns.filter(b => b.status === 'resolved');
+  if (countEl) countEl.innerHTML = `<strong style="color:var(--red)">${open.length} open</strong> &nbsp;·&nbsp; ${closed.length} resolved`;
+
+  if (!breakdowns.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">✅</div><p>No breakdowns logged.</p><small>${isAdmin?'Log a breakdown call when a customer reports an issue.':'Ask admin to log a breakdown call.'}</small></div>`;
+    return;
+  }
+
+  const sorted = [...breakdowns].sort((a, b) => {
+    if (a.status !== b.status) return a.status === 'open' ? -1 : 1;
+    const pOrder = { High: 0, Medium: 1, Low: 2 };
+    return (pOrder[a.priority] || 1) - (pOrder[b.priority] || 1);
+  });
+
+  el.innerHTML = sorted.map(bd => {
+    const isOpen = bd.status === 'open';
+    const priCls = bd.priority === 'High' ? 'bd-priority-high' : bd.priority === 'Low' ? 'bd-priority-low' : 'bd-priority-med';
+    const reported = new Date(bd.reportedAt).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+    // Find the customer object to pass to openSvcModal
+    const cust = customers.find(c => c._editKey === bd.editKey);
+    return `<div class="bd-card ${priCls} ${!isOpen?'bd-resolved':''}">
+      <div class="ac-top">
+        <div class="ac-info">
+          <h3>${esc(bd.customerName||'–')} ${!isOpen?'<span class="bdg bdg-svcdone">Resolved</span>':'<span class="bdg bdg-red">Open</span>'}</h3>
+          <div class="meta">📍 ${esc(bd.area||'–')} &nbsp;·&nbsp; 🔧 ${esc(bd.product||'–')} &nbsp;·&nbsp; 📞 ${esc(bd.phone||'–')}</div>
+          <div class="meta" style="margin-top:4px;font-weight:600;color:${bd.priority==='High'?'var(--red)':bd.priority==='Low'?'var(--muted)':'var(--amber)'}">⚡ ${esc(bd.priority)} Priority</div>
+          <div class="meta">🗣 Issue: ${esc(bd.issue||'–')}</div>
+          <div class="meta">📅 Reported: ${reported} by ${esc(bd.reportedBy||'Admin')}</div>
+          ${!isOpen&&bd.resolvedAt?`<div class="meta">✅ Resolved: ${new Date(bd.resolvedAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} by ${esc(bd.resolvedBy||'–')}</div>`:''}
+        </div>
+        <div class="ac-btns">
+          ${isOpen && cust ? `<button class="btn-copy ok" onclick="openSvcModal(customers.find(c=>c._editKey==='${bd.editKey}'), '${bd.id}')">📋 Resolve & Report</button>` : ''}
+          ${isAdmin && isOpen ? `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="closeBreakdownQuick('${bd.id}')">✕ Close</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openBreakdownModal() {
+  const sel = document.getElementById('bm-customer');
+  sel.innerHTML = '<option value="">— Select Customer —</option>' +
+    customers.map((c, i) => `<option value="${i}">${esc(c['Customer Name']||'–')} — ${esc(c['Area']||'–')}</option>`).join('');
+  ['bm-phone','bm-area','bm-product'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('bm-issue').value = '';
+  document.getElementById('bm-priority').value = 'Medium';
+  document.getElementById('breakdownModal').classList.add('open');
+}
+
+function closeBreakdownModal() {
+  document.getElementById('breakdownModal').classList.remove('open');
+}
+
+function fillBreakdownCustomer() {
+  const idx = parseInt(document.getElementById('bm-customer').value);
+  if (isNaN(idx)) return;
+  const c = customers[idx];
+  if (!c) return;
+  document.getElementById('bm-phone').value   = c['Phone Number'] || '';
+  document.getElementById('bm-area').value    = c['Area'] || '';
+  document.getElementById('bm-product').value = c['Product'] || '';
+}
+
+function saveBreakdown() {
+  const sel  = document.getElementById('bm-customer');
+  const idx  = parseInt(sel.value);
+  const issue = document.getElementById('bm-issue').value.trim();
+  if (isNaN(idx)) { showToast('⚠️ Select a customer'); return; }
+  if (!issue) { showToast('⚠️ Describe the issue'); return; }
+  const c = customers[idx];
+  if (!c) return;
+  const sess = JSON.parse(localStorage.getItem('xh2o_session') || '{}');
+  breakdowns.unshift({
+    id:           'BD' + Date.now(),
+    editKey:      c._editKey,
+    fileId:       c._fileId,
+    customerName: c['Customer Name'] || '',
+    phone:        c['Phone Number'] || '',
+    area:         c['Area'] || '',
+    product:      c['Product'] || '',
+    issue,
+    priority:     document.getElementById('bm-priority').value,
+    reportedAt:   new Date().toISOString(),
+    reportedBy:   sess.username ? (USERS[sess.username]?.label || sess.username) : 'Admin',
+    status:       'open',
+    resolvedAt:   null,
+    resolvedBy:   null,
+  });
+  saveBreakdowns();
+  closeBreakdownModal();
+  renderBreakdowns();
+  showToast('🚨 Breakdown logged');
+}
+
+function closeBreakdownQuick(id) {
+  const bd = breakdowns.find(b => b.id === id);
+  if (!bd) return;
+  bd.status = 'resolved';
+  bd.resolvedAt = new Date().toISOString();
+  bd.resolvedBy = 'Admin';
+  saveBreakdowns();
+  renderBreakdowns();
+  showToast('✅ Breakdown closed');
+}
+
+// ════════════════════════════════════════════════
+// TECHNICIAN PERFORMANCE (admin only)
+// ════════════════════════════════════════════════
+function renderPerformance() {
+  const perfSection = document.getElementById('perfSection');
+  if (!perfSection) return;
+  if (getCurrentRole() !== 'admin') { perfSection.style.display = 'none'; return; }
+  perfSection.style.display = '';
+
+  // Gather all service history entries with technician names
+  const allEntries = [];
+  Object.values(serviceHistory).forEach(entries => {
+    entries.forEach(e => { if (e.technician) allEntries.push(e); });
+  });
+
+  if (!allEntries.length) {
+    perfSection.innerHTML = `<div class="card"><h3>👷 Technician Performance</h3><p style="color:var(--muted);font-size:13px;margin-top:8px">No service reports logged yet.</p></div>`;
+    return;
+  }
+
+  // Group by technician
+  const byTech = {};
+  allEntries.forEach(e => {
+    const name = e.technician.trim();
+    if (!byTech[name]) byTech[name] = { total: 0, thisMonth: 0, lastMonth: 0, breakdownFixed: 0, parts: {} };
+    byTech[name].total++;
+
+    const eDate = parseDate(e.date);
+    const now = new Date(TODAY);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    if (eDate >= thisMonthStart) byTech[name].thisMonth++;
+    else if (eDate >= lastMonthStart && eDate < thisMonthStart) byTech[name].lastMonth++;
+
+    if (e.type === 'Breakdown / Repair') byTech[name].breakdownFixed++;
+    (e.parts || []).forEach(p => { byTech[name].parts[p] = (byTech[name].parts[p] || 0) + 1; });
+  });
+
+  // Open breakdowns per tech (resolved by them)
+  breakdowns.filter(b => b.status === 'open').forEach(b => {
+    // just count open — not per tech since unassigned
+  });
+
+  const openBds = breakdowns.filter(b => b.status === 'open').length;
+
+  perfSection.innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <h3>👷 Technician Performance</h3>
+      <div style="margin-top:4px;margin-bottom:16px;font-size:12px;color:var(--muted)">Based on service reports logged · ${allEntries.length} total visits · ${openBds} open breakdowns</div>
+      <div class="perf-grid">
+        ${Object.entries(byTech).sort((a,b) => b[1].total - a[1].total).map(([name, d]) => {
+          const trend = d.thisMonth >= d.lastMonth
+            ? `<span style="color:var(--green)">▲ ${d.thisMonth} this month</span>`
+            : `<span style="color:var(--red)">▼ ${d.thisMonth} this month</span>`;
+          return `<div class="perf-card">
+            <div class="perf-val">${d.total}</div>
+            <div class="perf-name">👤 ${esc(name)}</div>
+            <div class="perf-sub">${trend}</div>
+            <div class="perf-sub">${d.lastMonth} last month &nbsp;·&nbsp; ${d.breakdownFixed} breakdowns fixed</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div>
+        ${Object.entries(byTech).sort((a,b) => b[1].total - a[1].total).map(([name, d]) => {
+          const max = Math.max(...Object.values(byTech).map(x => x.total), 1);
+          return `<div class="bar-row">
+            <div class="bar-label" title="${esc(name)}">${esc(name)}</div>
+            <div class="bar-track"><div class="bar-fill bf-blue" style="width:${Math.round(d.total/max*100)}%"></div></div>
+            <div class="bar-val">${d.total} visits</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════
 const USERS = {
@@ -2948,14 +3437,14 @@ function applyRoleVisibility() {
       return;
     }
 
-    // Technician: service view — simplified dashboard + assignments
+    // Technician: service dashboard + assignments + breakdown queue
     if (role === 'technician') {
-      const show = new Set(['dash', 'assign']);
+      const show = new Set(['dash', 'assign', 'breakdowns']);
       tabs.forEach(t => { t.style.display = show.has(t.dataset.tab) ? '' : 'none'; });
       adminEls.forEach(el => el.style.display = 'none');  // hide payment filter, export, print
       if (banner) {
         banner.style.display = '';
-        banner.textContent = '🔧 Service Mode — showing customers sorted by service due date';
+        banner.textContent = '🔧 Service Mode — sorted by service due date';
       }
       _activateTab('assign');
       return;
