@@ -631,6 +631,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 
   <!-- TAB 1: Dashboard -->
   <div class="pane on" id="pane-dash">
+    <div id="dashRoleBanner" style="display:none;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:13px;color:var(--green);font-weight:600"></div>
     <div class="filter-bar">
       <input type="text" id="dsearch" placeholder="Search name or area…" oninput="renderDash()">
       <select id="dstatus" onchange="renderDash()">
@@ -640,14 +641,14 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
         <option value="Due Soon">Due Soon</option>
         <option value="Active">Active</option>
       </select>
-      <select id="dpay" onchange="renderDash()">
+      <select id="dpay" class="admin-only" onchange="renderDash()">
         <option value="">All Payments</option>
         <option value="unpaid">Unpaid</option>
         <option value="paid">Paid</option>
       </select>
-      <button class="btn-sm" id="btnGroup" onclick="toggleGroup()">⊞ Group by Area</button>
-      <button class="btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
-      <button class="btn-sm" onclick="window.print()">🖨 Print</button>
+      <button class="btn-sm admin-only" id="btnGroup" onclick="toggleGroup()">⊞ Group by Area</button>
+      <button class="btn-sm admin-only" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn-sm admin-only" onclick="window.print()">🖨 Print</button>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -888,6 +889,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
       <label>Source</label>
       <select id="lf-source">
         <option>WhatsApp</option><option>Phone Call</option><option>Referral</option><option>Walk-in</option>
+        <option>Technician Visit</option><option>Instagram</option><option>Google</option><option>Exhibition</option>
       </select>
     </div>
 
@@ -963,6 +965,7 @@ let _nextId       = 1;
 let _editList     = [];      // last rendered dash list for modal indexing
 let _editModalIdx = -1;
 let _actionList   = [];      // last rendered action list for quick renew indexing
+let _assignRenderList = [];  // last rendered assignments list for tech actions
 const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
 
 // ════════════════════════════════════════════════
@@ -1830,6 +1833,9 @@ function renderDash() {
   const totalCols = (isAllFiles ? 15 : 14);
   _editList = list;
 
+  // Technician gets a service-focused view
+  if (getCurrentRole() === 'technician') { renderTechDash(list); return; }
+
   head.innerHTML = `<th>#</th><th>Customer</th><th>Phone</th>${isAllFiles?'<th>File</th>':''}<th>Area</th><th>Product</th><th>Due Date</th><th>Days</th><th>Amount</th><th>Payment</th><th>Status</th><th>Next Svc</th><th>Calls</th><th>Contact</th><th></th>`;
 
   if (!list.length) {
@@ -1953,6 +1959,107 @@ function renderDashGrouped(list, isAllFiles, colMap, body, cols) {
     html += `<tr class="area-foot"><td colspan="${cols}">Subtotal: ${rows.length} customers · ${fmtMoney(total)}</td></tr>`;
   });
   body.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+// TECHNICIAN DASHBOARD (service-focused view)
+// ════════════════════════════════════════════════
+function renderTechDash(list) {
+  // Sort: service alerts first, then by next service date
+  const svcList = [...list].sort((a, b) => {
+    if (a._serviceAlert !== b._serviceAlert) return a._serviceAlert ? -1 : 1;
+    if (a._nextSvcDue && b._nextSvcDue) return a._nextSvcDue - b._nextSvcDue;
+    return 0;
+  });
+  _editList = svcList;
+
+  const head = document.getElementById('dashHead');
+  const body = document.getElementById('dashBody');
+
+  head.innerHTML = `<th>#</th><th>Customer</th><th>Phone</th><th>Area / Address</th><th>Product</th><th>Next Service</th><th>Days</th><th>Action</th>`;
+
+  if (!svcList.length) {
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No customers found.</td></tr>`;
+    document.getElementById('dashCards').innerHTML = `<div class="empty"><div class="ei">🔍</div><p>No customers found.</p></div>`;
+    return;
+  }
+
+  // Desktop table — service-focused, no payment/AMC columns
+  body.innerHTML = svcList.map((c, i) => {
+    const d = c._svcDueDays;
+    const alertCls = c._serviceAlert ? 'r-amber' : 'r-green';
+    const dStr = d === null ? '–' : d < 0
+      ? `<span class="dl-red">${Math.abs(d)}d overdue</span>`
+      : d === 0 ? `<span class="dl-red">Today</span>`
+      : d <= 14 ? `<span class="dl-amber">${d}d</span>`
+      : `<span class="dl-green">${d}d</span>`;
+    const svcBdg = c._serviceAlert ? ' <span class="bdg bdg-svc">Svc Due</span>' : '';
+    return `<tr class="${alertCls}">
+      <td>${i+1}</td>
+      <td><span class="cname">${esc(c['Customer Name']||'–')}</span>${svcBdg}</td>
+      <td style="font-size:12px">${esc(c['Phone Number']||'–')}${c['Phone 2']?`<div style="font-size:11px;color:var(--muted)">${esc(c['Phone 2'])}</div>`:''}</td>
+      <td style="font-size:12px">${esc(c['Area']||'–')}${c['Address']?`<div style="font-size:11px;color:var(--muted);margin-top:2px">🏠 ${esc(c['Address'])}</div>`:''}</td>
+      <td>${esc(c['Product']||'–')}</td>
+      <td style="font-size:12px;white-space:nowrap">${c._nextSvcDue ? fmtDate(c._nextSvcDue) : '–'}</td>
+      <td>${dStr}</td>
+      <td style="white-space:nowrap">
+        ${c._serviceAlert ? `<button class="btn-copy ok" style="font-size:11px;padding:4px 8px" onclick="markServiced(${i})">🔧 Done</button> ` : ''}
+        <button class="btn-sm" style="font-size:11px;padding:4px 8px" onclick="spotLeadFromCustomer(${i})">💡 Spot Lead</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Mobile cards — service-focused
+  document.getElementById('dashCards').innerHTML = svcList.map((c, i) => {
+    const d = c._svcDueDays;
+    const dStr = d === null ? '–' : d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `in ${d}d`;
+    const dClr = d !== null && d <= 0 ? 'var(--red)' : d !== null && d <= 14 ? 'var(--amber)' : 'var(--green)';
+    const alertCls = c._serviceAlert ? 'r-amber' : 'r-green';
+    return `<div class="dash-card ${alertCls}">
+      <div class="dc-top">
+        <div class="dc-name">${esc(c['Customer Name']||'–')}</div>
+        ${c._serviceAlert ? '<span class="bdg bdg-svc">Svc Due</span>' : '<span class="bdg bdg-green">Active</span>'}
+      </div>
+      <div class="dc-meta">🔧 ${esc(c['Product']||'–')} &nbsp;·&nbsp; 📍 ${esc(c['Area']||'–')}</div>
+      ${c['Address'] ? `<div style="font-size:11px;color:var(--muted);margin-bottom:4px">🏠 ${esc(c['Address'])}</div>` : ''}
+      <div class="dc-row">
+        <span style="color:var(--muted);font-size:12px">📞 ${esc(c['Phone Number']||'–')}</span>
+        ${c['Phone 2'] ? `<span style="color:var(--muted);font-size:11px">${esc(c['Phone 2'])}</span>` : ''}
+      </div>
+      <div class="dc-row">
+        <span style="font-size:12px">Next svc: <strong>${c._nextSvcDue ? fmtDate(c._nextSvcDue) : '–'}</strong></span>
+        <span style="color:${dClr};font-weight:700">${dStr}</span>
+      </div>
+      ${c._serviceAlert ? `<button class="dc-edit" style="background:#e8f5e9;border-color:#a5d6a7;color:var(--green);margin-bottom:6px" onclick="markServiced(${i})">🔧 Mark Service Done</button>` : ''}
+      <button class="dc-edit" style="background:#fef9e7;border-color:#f9ca24;color:#856404" onclick="spotLeadFromCustomer(${i})">💡 Spot Lead for Sales</button>
+    </div>`;
+  }).join('');
+}
+
+// Open lead modal pre-filled from a customer record (for technician "spot" flow)
+function spotLeadFromCustomer(idx) {
+  const c = _editList[idx];
+  if (!c) return;
+  openLeadModal(null, {
+    name:     c['Customer Name'] || '',
+    phone:    c['Phone Number'] || '',
+    category: c['Category'] || '',
+    source:   'Technician Visit',
+    notes:    `Spotted during service visit. Existing product: ${c['Product']||'–'}. Area: ${c['Area']||'–'}.`
+  });
+}
+
+// Open lead modal pre-filled from assignments list
+function spotLeadFromAssign(idx) {
+  const c = _assignRenderList[idx];
+  if (!c) return;
+  openLeadModal(null, {
+    name:     c['Customer Name'] || '',
+    phone:    c['Phone Number'] || '',
+    category: c['Category'] || '',
+    source:   'Technician Visit',
+    notes:    `Spotted during service visit. Existing product: ${c['Product']||'–'}. Area: ${c['Area']||'–'}.`
+  });
 }
 
 // ════════════════════════════════════════════════
@@ -2284,14 +2391,14 @@ function renderAssignments() {
   const el = document.getElementById('assignList');
   const countEl = document.getElementById('assignCount');
   if (!el) return;
-  // Show all active customers sorted by next service due
+  // All active customers sorted by next service due (alerts first)
   const list = customers.filter(c => c.status === 'Active' || c._serviceAlert)
     .sort((a, b) => {
-      // Service alerts first
       if (a._serviceAlert !== b._serviceAlert) return a._serviceAlert ? -1 : 1;
       if (a._nextSvcDue && b._nextSvcDue) return a._nextSvcDue - b._nextSvcDue;
       return 0;
     });
+  _assignRenderList = list;
   if (countEl) countEl.innerHTML = `<strong>${list.length}</strong> customers &nbsp;·&nbsp; <strong style="color:var(--amber)">${list.filter(c=>c._serviceAlert).length} service alerts</strong>`;
   if (!list.length) {
     el.innerHTML = `<div class="empty"><div class="ei">📋</div><p>No assignments.</p><small>Load customer data to see service assignments.</small></div>`;
@@ -2303,21 +2410,31 @@ function renderAssignments() {
     const dStr = d === null ? '–' : d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Today' : `in ${d}d`;
     const dClr = d !== null && d <= 0 ? 'var(--red)' : d !== null && d <= 14 ? 'var(--amber)' : 'var(--green)';
     const assignTo = (c['Assigned To'] || '').trim();
+    // For Mark Done, find index in _editList (dashboard list) or fall back to 0
+    const dashIdx = _editList.findIndex(x => x === c);
     return `<div class="ac" style="${alertCls}">
       <div class="ac-top">
         <div class="ac-info">
           <h3>${esc(c['Customer Name']||'–')} ${c._serviceAlert?'<span class="bdg bdg-svc">Svc Due</span>':''}</h3>
-          <div class="meta">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')} &nbsp;·&nbsp; 📞 ${esc(c['Phone Number']||'–')}</div>
+          <div class="meta">📍 ${esc(c['Area']||'–')} &nbsp;·&nbsp; 🔧 ${esc(c['Product']||'–')}</div>
+          <div class="meta">📞 ${esc(c['Phone Number']||'–')}${c['Phone 2']?' &nbsp;/&nbsp; '+esc(c['Phone 2']):''}</div>
           ${c['Address']?`<div class="meta" style="font-size:12px">🏠 ${esc(c['Address'])}</div>`:''}
-          <div class="meta">Next svc: <strong>${fmtDate(c._nextSvcDue)}</strong> &nbsp;·&nbsp; <strong style="color:${dClr}">${dStr}</strong>${c._svcDays!==null?` &nbsp;·&nbsp; Last: ${c._svcDays}d ago`:''}</div>
-          ${assignTo?`<div class="meta">👤 ${esc(assignTo)}</div>`:''}
+          <div class="meta">Next svc: <strong>${fmtDate(c._nextSvcDue)||'–'}</strong> &nbsp;·&nbsp; <strong style="color:${dClr}">${dStr}</strong>${c._svcDays!==null?` &nbsp;·&nbsp; Last: ${c._svcDays}d ago`:''}</div>
+          ${assignTo?`<div class="meta">👤 Assigned: ${esc(assignTo)}</div>`:''}
         </div>
         <div class="ac-btns">
-          <button class="btn-copy ok" onclick="markServiced(${_editList.findIndex(x=>x===c)>=0?_editList.findIndex(x=>x===c):0})">🔧 Mark Done</button>
+          <button class="btn-copy ok" onclick="markServicedFromAssign(${i})">🔧 Mark Done</button>
+          <button class="btn-sm" onclick="spotLeadFromAssign(${i})" style="background:#fef9e7;border-color:#f9ca24;color:#856404">💡 Spot Lead</button>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+
+// Mark service done from the Assignments tab (uses _assignRenderList)
+function markServicedFromAssign(i) {
+  const c = _assignRenderList[i]; if (!c) return;
+  markServicedToday(c._editKey, c);
 }
 
 // ════════════════════════════════════════════════
@@ -2654,7 +2771,7 @@ function renderSales() {
   }).join('');
 }
 
-function openLeadModal(id) {
+function openLeadModal(id, prefill) {
   _leadModalId = id;
   const del = document.getElementById('lf-delete');
   if (id) {
@@ -2674,18 +2791,19 @@ function openLeadModal(id) {
     document.getElementById('lf-notes').value      = lead.notes || '';
     del.style.display = '';
   } else {
-    document.getElementById('leadModalTitle').textContent = '🔥 New Lead';
-    document.getElementById('leadModalSub').textContent = 'Fill in the lead details';
-    document.getElementById('lf-name').value = '';
-    document.getElementById('lf-phone').value = '';
-    document.getElementById('lf-source').value = 'WhatsApp';
-    document.getElementById('lf-product').value = '';
-    document.getElementById('lf-category').value = '';
-    document.getElementById('lf-stage').value = 'New Lead';
-    document.getElementById('lf-priority').value = 'Medium';
-    document.getElementById('lf-followup').value = '';
-    document.getElementById('lf-assigned').value = '';
-    document.getElementById('lf-notes').value = '';
+    const isTechSpot = !!prefill;
+    document.getElementById('leadModalTitle').textContent = isTechSpot ? '💡 Spot Lead from Visit' : '🔥 New Lead';
+    document.getElementById('leadModalSub').textContent   = isTechSpot ? 'Pre-filled from customer — add suggested product' : 'Fill in the lead details';
+    document.getElementById('lf-name').value       = prefill?.name     || '';
+    document.getElementById('lf-phone').value      = prefill?.phone    || '';
+    document.getElementById('lf-source').value     = prefill?.source   || 'WhatsApp';
+    document.getElementById('lf-product').value    = prefill?.product  || '';
+    document.getElementById('lf-category').value   = prefill?.category || '';
+    document.getElementById('lf-stage').value      = 'New Lead';
+    document.getElementById('lf-priority').value   = 'Medium';
+    document.getElementById('lf-followup').value   = '';
+    document.getElementById('lf-assigned').value   = '';
+    document.getElementById('lf-notes').value      = prefill?.notes || '';
     del.style.display = 'none';
   }
   document.getElementById('leadModal').classList.add('open');
@@ -2799,31 +2917,46 @@ function checkSession() {
   } catch(e) { return false; }
 }
 
+function getCurrentRole() {
+  try { const s = localStorage.getItem('xh2o_session'); return s ? JSON.parse(s).role : ''; } catch(e) { return ''; }
+}
+
 function applyRoleVisibility() {
   try {
     const raw = localStorage.getItem('xh2o_session');
     if (!raw) return;
-    const { role } = JSON.parse(raw);
-    const tabs  = document.querySelectorAll('.tab');
-    // Admin sees everything
+    const { username, role } = JSON.parse(raw);
+    const tabs    = document.querySelectorAll('.tab');
+    const adminEls = document.querySelectorAll('.admin-only');
+    const banner  = document.getElementById('dashRoleBanner');
+
+    // Admin: full access, show all
     if (role === 'admin') {
       tabs.forEach(t => t.style.display = '');
+      adminEls.forEach(el => el.style.display = '');
+      if (banner) banner.style.display = 'none';
       return;
     }
-    // Sales: Dashboard + Sales only
+
+    // Sales: customer data + pipeline + messaging
     if (role === 'sales') {
-      tabs.forEach(t => {
-        const id = t.dataset.tab;
-        t.style.display = (id === 'dash' || id === 'sales') ? '' : 'none';
-      });
+      const show = new Set(['dash', 'action', 'msg', 'sales']);
+      tabs.forEach(t => { t.style.display = show.has(t.dataset.tab) ? '' : 'none'; });
+      adminEls.forEach(el => el.style.display = '');  // sales can see payment filter etc.
+      if (banner) banner.style.display = 'none';
       _activateTab('sales');
       return;
     }
-    // Technician: Assignments only
+
+    // Technician: service view — simplified dashboard + assignments
     if (role === 'technician') {
-      tabs.forEach(t => {
-        t.style.display = t.dataset.tab === 'assign' ? '' : 'none';
-      });
+      const show = new Set(['dash', 'assign']);
+      tabs.forEach(t => { t.style.display = show.has(t.dataset.tab) ? '' : 'none'; });
+      adminEls.forEach(el => el.style.display = 'none');  // hide payment filter, export, print
+      if (banner) {
+        banner.style.display = '';
+        banner.textContent = '🔧 Service Mode — showing customers sorted by service due date';
+      }
       _activateTab('assign');
       return;
     }
