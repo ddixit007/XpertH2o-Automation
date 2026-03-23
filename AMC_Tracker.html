@@ -3161,13 +3161,19 @@ ${overdueLeads.length > 0 ? `\n⚠️ ${overdueLeads.length} overdue lead(s) abh
 — XpertH2O Sales`;
 
   // ── SERVICE ────────────────────────────────────
-  const todaySvc    = (customers || []).filter(c => dateToISO(c._nextSvcDue) === today);
-  const tomorrowSvc = (customers || []).filter(c => dateToISO(c._nextSvcDue) === tomorrow);
+  const todaySvc    = (customers || []).filter(c => c._svcDueDays === 0);
+  const tomorrowSvc = (customers || []).filter(c => c._svcDueDays === 1);
+  const overdueSvc  = (customers || []).filter(c => c._svcDueDays !== null && c._svcDueDays !== undefined && c._svcDueDays < 0);
   const openBd      = (breakdowns || []).filter(b => b.status === 'open');
 
   const techMorning =
 `☀️ Aaj ki Services — ${fmtBriefingDate(today)}
 ${'─'.repeat(36)}
+🔴 Service Overdue (pehle yeh karo):
+${overdueSvc.length
+  ? overdueSvc.map(c => `• ${c['Customer Name']||'–'} — ${c['Area']||'–'} — ${c['Product']||'–'} — ${Math.abs(c._svcDueDays)}d overdue — 📞 ${c['Phone Number']||'–'}`).join('\n')
+  : 'Koi nahi ✅'}
+
 📅 Aaj ke visits:
 ${todaySvc.length
   ? todaySvc.map(c => `• ${c['Customer Name']||'–'} — ${c['Area']||'–'} — ${c['Product']||'–'} — 📞 ${c['Phone Number']||'–'}`).join('\n')
@@ -3178,7 +3184,7 @@ ${openBd.length
   ? openBd.map(b => `• ${b.customerName||'–'} — ${b.issue||'–'} — ${b.priority||'–'} Priority`).join('\n')
   : 'Koi nahi ✅'}
 
-Total visits aaj: ${todaySvc.length}
+Total visits aaj: ${todaySvc.length}${overdueSvc.length ? ` + ${overdueSvc.length} overdue` : ''}
 — XpertH2O Service Team`;
 
   const techEvening =
