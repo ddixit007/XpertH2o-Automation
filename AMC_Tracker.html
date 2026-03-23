@@ -793,6 +793,10 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 
   <!-- TAB 7: Assignments (Technician view) -->
   <div class="pane" id="pane-assign">
+    <div id="techBriefBar" style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span id="techBriefSummary" style="font-size:13px;font-weight:700;color:var(--green)"></span>
+      <button class="btn-sm" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="copyTechMorning()">📋 Copy Today's Schedule</button>
+    </div>
     <div class="bulk-bar">
       <p id="assignCount"></p>
     </div>
@@ -1020,28 +1024,28 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     <!-- 2x2 grid: Sales Morning / Sales Evening / Service Morning / Service Evening -->
     <div class="brief-grid" id="briefGrid">
       <!-- Sales Morning -->
-      <div class="brief-section" id="brief-sales-morn-wrap">
+      <div class="brief-section brief-sales-section">
         <h4>☀️ Sales — Today's Follow-ups</h4>
-        <textarea id="brief-sales-morn" class="brief-ta" readonly></textarea>
-        <button class="brief-copy" onclick="copyBrief('brief-sales-morn',this)">📋 Copy</button>
+        <textarea id="brief-sales-morning" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-sales-morning',this)">📋 Copy</button>
       </div>
       <!-- Sales Evening -->
-      <div class="brief-section" id="brief-sales-eve-wrap">
+      <div class="brief-section brief-sales-section">
         <h4>🌙 Sales — Tomorrow's Preview</h4>
-        <textarea id="brief-sales-eve" class="brief-ta" readonly></textarea>
-        <button class="brief-copy" onclick="copyBrief('brief-sales-eve',this)">📋 Copy</button>
+        <textarea id="brief-sales-evening" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-sales-evening',this)">📋 Copy</button>
       </div>
       <!-- Service Morning -->
-      <div class="brief-section" id="brief-svc-morn-wrap">
+      <div class="brief-section brief-tech-section">
         <h4>☀️ Service — Today's Visits</h4>
-        <textarea id="brief-svc-morn" class="brief-ta" readonly></textarea>
-        <button class="brief-copy" onclick="copyBrief('brief-svc-morn',this)">📋 Copy</button>
+        <textarea id="brief-tech-morning" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-tech-morning',this)">📋 Copy</button>
       </div>
       <!-- Service Evening -->
-      <div class="brief-section" id="brief-svc-eve-wrap">
+      <div class="brief-section brief-tech-section">
         <h4>🌙 Service — Tomorrow's Plan</h4>
-        <textarea id="brief-svc-eve" class="brief-ta" readonly></textarea>
-        <button class="brief-copy" onclick="copyBrief('brief-svc-eve',this)">📋 Copy</button>
+        <textarea id="brief-tech-evening" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-tech-evening',this)">📋 Copy</button>
       </div>
     </div>
   </div>
@@ -2637,6 +2641,15 @@ function renderAssignments() {
     });
   _assignRenderList = list;
   if (countEl) countEl.innerHTML = `<strong>${list.length}</strong> customers &nbsp;·&nbsp; <strong style="color:var(--amber)">${list.filter(c=>c._serviceAlert).length} service alerts</strong>`;
+
+  // Tech brief bar summary
+  const briefSumEl = document.getElementById('techBriefSummary');
+  if (briefSumEl) {
+    const todayCount    = customers.filter(c => c._svcDueDays === 0).length;
+    const overdueCount2 = customers.filter(c => c._svcDueDays !== null && c._svcDueDays !== undefined && c._svcDueDays < 0).length;
+    const tomorrowCount = customers.filter(c => c._svcDueDays === 1).length;
+    briefSumEl.textContent = `🔧 Aaj: ${todayCount} visits · Overdue: ${overdueCount2} · Kal: ${tomorrowCount}`;
+  }
   if (!list.length) {
     el.innerHTML = `<div class="empty"><div class="ei">📋</div><p>No assignments.</p><small>Load customer data to see service assignments.</small></div>`;
     return;
@@ -2937,21 +2950,30 @@ function setSalesFilter(f, btn) {
 }
 
 function renderSales() {
-  // Summary
+  const _sess     = JSON.parse(localStorage.getItem('xh2o_session') || '{}');
+  const _curLabel = (USERS[_sess.username] && USERS[_sess.username].label) ? USERS[_sess.username].label : '';
+  const _curRole  = _sess.role || '';
+
+  // If sales role, filter leads to only their own (or unassigned)
+  const _myLeads = _curRole === 'sales'
+    ? leads.filter(l => !l.assigned_to || l.assigned_to.trim().toLowerCase() === _curLabel.trim().toLowerCase())
+    : leads;
+
+  // Summary (counts from role-filtered set)
   const today0 = new Date(TODAY);
   const monthStart = new Date(today0.getFullYear(), today0.getMonth(), 1);
-  const openLeads = leads.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
+  const openLeads = _myLeads.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
   const highCount = openLeads.filter(l => l.priority === 'High').length;
   const overdueCount = openLeads.filter(l => l.next_followup_date && new Date(l.next_followup_date) <= TODAY).length;
-  const wonMonth = leads.filter(l => l.stage === 'Closed Won' && l.created_at && new Date(l.created_at) >= monthStart).length;
+  const wonMonth = _myLeads.filter(l => l.stage === 'Closed Won' && l.created_at && new Date(l.created_at) >= monthStart).length;
   document.getElementById('salesSummary').innerHTML = `
-    <div class="pill pill-gray clickable" onclick="setSalesFilter('all',document.querySelector('.sf-btn'))">${leads.length} Total Leads</div>
+    <div class="pill pill-gray clickable" onclick="setSalesFilter('all',document.querySelector('.sf-btn'))">${_myLeads.length} Total Leads</div>
     <div class="pill pill-red">${highCount} High Priority</div>
     <div class="pill pill-amber">${overdueCount} Overdue Follow-up</div>
     <div class="pill pill-green">${wonMonth} Won This Month</div>`;
 
-  // Filter
-  let list = [...leads];
+  // Filter (start from role-filtered set)
+  let list = [..._myLeads];
   if (_salesFilter === 'open')    list = list.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
   if (_salesFilter === 'high')    list = list.filter(l => l.priority === 'High');
   if (_salesFilter === 'overdue') list = list.filter(l => l.next_followup_date && new Date(l.next_followup_date) <= TODAY && l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
@@ -3207,23 +3229,29 @@ Taiyar raho! 💪
 }
 
 function openBriefingModal() {
+  // Generate content
+  const b = generateBriefings();
+
+  // Fill textareas
+  document.getElementById('brief-sales-morning').value = b.salesMorning;
+  document.getElementById('brief-sales-evening').value = b.salesEvening;
+  document.getElementById('brief-tech-morning').value  = b.techMorning;
+  document.getElementById('brief-tech-evening').value  = b.techEvening;
+
+  // Update date in subtitle
   document.getElementById('briefingDateSub').textContent = fmtBriefingDate(getTodayISO());
 
   // Role-based section visibility
-  const sess = JSON.parse(localStorage.getItem('xh2o_session') || '{}');
-  const role = sess.role || 'admin';
-  const showSales = role === 'admin' || role === 'sales';
-  const showSvc   = role === 'admin' || role === 'technician';
-  document.getElementById('brief-sales-morn-wrap').style.display = showSales ? '' : 'none';
-  document.getElementById('brief-sales-eve-wrap').style.display  = showSales ? '' : 'none';
-  document.getElementById('brief-svc-morn-wrap').style.display   = showSvc   ? '' : 'none';
-  document.getElementById('brief-svc-eve-wrap').style.display    = showSvc   ? '' : 'none';
+  const role = getCurrentRole();
+  const salesSections = document.querySelectorAll('.brief-sales-section');
+  const techSections  = document.querySelectorAll('.brief-tech-section');
+  salesSections.forEach(el => el.style.display = role === 'technician' ? 'none' : '');
+  techSections.forEach(el  => el.style.display = role === 'sales'      ? 'none' : '');
 
-  // Collapse to single column if only one type shown
+  // Collapse to single column if only one type is visible
   document.getElementById('briefGrid').style.gridTemplateColumns =
-    (showSales && showSvc) ? '' : '1fr';
+    (role === 'admin') ? '' : '1fr';
 
-  generateAndRenderBriefings();
   document.getElementById('briefingModal').classList.add('open');
 }
 
@@ -3233,10 +3261,17 @@ function closeBriefingModal() {
 
 function generateAndRenderBriefings() {
   const b = generateBriefings();
-  document.getElementById('brief-sales-morn').value = b.salesMorning;
-  document.getElementById('brief-sales-eve').value  = b.salesEvening;
-  document.getElementById('brief-svc-morn').value   = b.techMorning;
-  document.getElementById('brief-svc-eve').value    = b.techEvening;
+  document.getElementById('brief-sales-morning').value = b.salesMorning;
+  document.getElementById('brief-sales-evening').value = b.salesEvening;
+  document.getElementById('brief-tech-morning').value  = b.techMorning;
+  document.getElementById('brief-tech-evening').value  = b.techEvening;
+}
+
+function copyTechMorning() {
+  const b = generateBriefings();
+  navigator.clipboard.writeText(b.techMorning).then(() => {
+    showToast('📋 Aaj ki schedule copy ho gayi');
+  });
 }
 
 function copyBrief(id, btn) {
