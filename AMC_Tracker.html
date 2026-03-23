@@ -405,6 +405,18 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 .edit-sticky-save{display:none;position:sticky;bottom:0;left:0;right:0;background:#fff;
   padding:12px 16px;border-top:1px solid var(--border);gap:8px;z-index:10}
 
+/* BRIEFING MODAL */
+#briefingModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto}
+#briefingModal.open{display:flex}
+.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:4px}
+@media(max-width:640px){.brief-grid{grid-template-columns:1fr}}
+.brief-section h4{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:.3px}
+.brief-ta{width:100%;min-height:160px;font-size:11.5px;font-family:monospace;background:#f8fafc;
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;resize:vertical;
+  color:var(--text);line-height:1.6;box-sizing:border-box}
+.brief-copy{margin-top:6px;width:100%;padding:7px;border-radius:7px;border:1.5px solid var(--border);
+  background:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+.brief-copy:hover{border-color:var(--blue);color:var(--blue)}
 /* SERVICE REPORT MODAL */
 #svcModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;display:none;align-items:center;justify-content:center;padding:16px}
 #svcModal.open{display:flex}
@@ -587,6 +599,7 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     <div class="hd-btn-group" style="display:flex;align-items:center;gap:8px">
       <button class="btn-hdr" onclick="backupAll()" title="Download full backup">💾 Backup</button>
       <button class="btn-hdr btn-hdr-outline" onclick="restoreBackup()" title="Restore from backup">📥 Restore</button>
+      <button class="btn-hdr" onclick="openBriefingModal()" title="Daily Briefing" data-role-hide="technician">📢 Briefing</button>
     </div>
     <button class="btn-hdr btn-hdr-outline" id="menuBtn" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
   </div>
@@ -986,6 +999,50 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
     <div class="edit-sticky-save">
       <button class="btn-esave" style="flex:1" onclick="saveLeadModal()">💾 Save Lead</button>
       <button class="btn-ecancel" onclick="closeLeadModal()">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Daily Briefing Modal -->
+<div id="briefingModal" onclick="if(event.target===this)closeBriefingModal()">
+  <div class="edit-box" style="max-width:560px;width:100%">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:16px">
+      <div>
+        <h3 style="margin:0">📢 Daily Briefing</h3>
+        <p class="edit-sub" id="briefingDateSub" style="margin:4px 0 0"></p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+        <button class="btn-sm" onclick="generateAndRenderBriefings()" style="font-size:12px;padding:5px 10px">🔄 Regenerate</button>
+        <button class="btn-ecancel" style="padding:6px 12px;font-size:16px;line-height:1" onclick="closeBriefingModal()">✕</button>
+      </div>
+    </div>
+
+    <!-- 2x2 grid: Sales Morning / Sales Evening / Service Morning / Service Evening -->
+    <div class="brief-grid" id="briefGrid">
+      <!-- Sales Morning -->
+      <div class="brief-section" id="brief-sales-morn-wrap">
+        <h4>☀️ Sales — Today's Follow-ups</h4>
+        <textarea id="brief-sales-morn" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-sales-morn',this)">📋 Copy</button>
+      </div>
+      <!-- Sales Evening -->
+      <div class="brief-section" id="brief-sales-eve-wrap">
+        <h4>🌙 Sales — Tomorrow's Preview</h4>
+        <textarea id="brief-sales-eve" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-sales-eve',this)">📋 Copy</button>
+      </div>
+      <!-- Service Morning -->
+      <div class="brief-section" id="brief-svc-morn-wrap">
+        <h4>☀️ Service — Today's Visits</h4>
+        <textarea id="brief-svc-morn" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-svc-morn',this)">📋 Copy</button>
+      </div>
+      <!-- Service Evening -->
+      <div class="brief-section" id="brief-svc-eve-wrap">
+        <h4>🌙 Service — Tomorrow's Plan</h4>
+        <textarea id="brief-svc-eve" class="brief-ta" readonly></textarea>
+        <button class="brief-copy" onclick="copyBrief('brief-svc-eve',this)">📋 Copy</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3029,6 +3086,166 @@ function deleteLeadModal() {
 }
 
 // ════════════════════════════════════════════════
+// DAILY BRIEFING
+// ════════════════════════════════════════════════
+function getTodayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+function getTomorrowISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+function fmtBriefingDate(iso) {
+  if (!iso) return '–';
+  const [y,m,day] = iso.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return parseInt(day) + ' ' + months[parseInt(m)-1] + ' ' + y;
+}
+function dateToISO(d) {
+  if (!d) return null;
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function daysBetweenISO(isoA, isoB) {
+  return Math.round((new Date(isoB) - new Date(isoA)) / 86400000);
+}
+
+function generateBriefings() {
+  const today    = getTodayISO();
+  const tomorrow = getTomorrowISO();
+  const sess = JSON.parse(localStorage.getItem('xh2o_session') || '{}');
+  const currentUsername = sess.username || '';
+  const currentRole     = sess.role || '';
+  const currentLabel    = (USERS[currentUsername] && USERS[currentUsername].label) ? USERS[currentUsername].label : '';
+
+  // ── SALES ──────────────────────────────────────
+  let openLeads = (leads || []).filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
+  if (currentRole === 'sales') {
+    openLeads = openLeads.filter(l =>
+      !l.assigned_to || l.assigned_to.trim().toLowerCase() === currentLabel.trim().toLowerCase()
+    );
+  }
+  const overdueLeads  = openLeads.filter(l => l.next_followup_date && l.next_followup_date < today);
+  const todayLeads    = openLeads.filter(l => l.next_followup_date === today);
+  const tomorrowLeads = openLeads.filter(l => l.next_followup_date === tomorrow);
+
+  const salesMorning =
+`☀️ Sales Follow-ups — ${fmtBriefingDate(today)}
+${'─'.repeat(36)}
+🔴 Overdue (pehle yeh karo):
+${overdueLeads.length
+  ? overdueLeads.map(l => `• ${l.name||'–'} — ${l.stage||'–'} — ${daysBetweenISO(l.next_followup_date, today)}d pending`).join('\n')
+  : 'Koi nahi ✅'}
+
+📅 Aaj karna hai:
+${todayLeads.length
+  ? todayLeads.map(l => `• ${l.name||'–'} — ${l.stage||'–'} — ${l.priority||'–'} Priority`).join('\n')
+  : 'Koi nahi ✅'}
+
+Total open leads: ${openLeads.length}
+— XpertH2O Sales`;
+
+  const salesEvening =
+`🌙 Kal ke Follow-ups — ${fmtBriefingDate(tomorrow)}
+${'─'.repeat(36)}
+📅 Kal karna hai:
+${tomorrowLeads.length
+  ? tomorrowLeads.map(l => `• ${l.name||'–'} — ${l.stage||'–'} — ${l.priority||'–'} Priority`).join('\n')
+  : 'Koi nahi ✅'}
+${overdueLeads.length > 0 ? `\n⚠️ ${overdueLeads.length} overdue lead(s) abhi bhi pending hain.` : ''}
+— XpertH2O Sales`;
+
+  // ── SERVICE ────────────────────────────────────
+  const todaySvc    = (customers || []).filter(c => dateToISO(c._nextSvcDue) === today);
+  const tomorrowSvc = (customers || []).filter(c => dateToISO(c._nextSvcDue) === tomorrow);
+  const openBd      = (breakdowns || []).filter(b => b.status === 'open');
+
+  const techMorning =
+`☀️ Aaj ki Services — ${fmtBriefingDate(today)}
+${'─'.repeat(36)}
+📅 Aaj ke visits:
+${todaySvc.length
+  ? todaySvc.map(c => `• ${c['Customer Name']||'–'} — ${c['Area']||'–'} — ${c['Product']||'–'} — 📞 ${c['Phone Number']||'–'}`).join('\n')
+  : 'Koi nahi ✅'}
+
+🚨 Open breakdowns (urgent):
+${openBd.length
+  ? openBd.map(b => `• ${b.customerName||'–'} — ${b.issue||'–'} — ${b.priority||'–'} Priority`).join('\n')
+  : 'Koi nahi ✅'}
+
+Total visits aaj: ${todaySvc.length}
+— XpertH2O Service Team`;
+
+  const techEvening =
+`🌙 Kal ki Services — ${fmtBriefingDate(tomorrow)}
+${'─'.repeat(36)}
+📅 Kal ki planned visits:
+${tomorrowSvc.length
+  ? tomorrowSvc.map(c => `• ${c['Customer Name']||'–'} — ${c['Area']||'–'} — ${c['Product']||'–'} — 📞 ${c['Phone Number']||'–'}`).join('\n')
+  : 'Koi nahi ✅'}
+
+🚨 Open breakdowns (carry forward):
+${openBd.length
+  ? openBd.map(b => `• ${b.customerName||'–'} — ${b.issue||'–'} — ${b.priority||'–'} Priority`).join('\n')
+  : 'Koi nahi ✅'}
+
+Taiyar raho! 💪
+— XpertH2O Service Team`;
+
+  return { salesMorning, salesEvening, techMorning, techEvening };
+}
+
+function openBriefingModal() {
+  document.getElementById('briefingDateSub').textContent = fmtBriefingDate(getTodayISO());
+
+  // Role-based section visibility
+  const sess = JSON.parse(localStorage.getItem('xh2o_session') || '{}');
+  const role = sess.role || 'admin';
+  const showSales = role === 'admin' || role === 'sales';
+  const showSvc   = role === 'admin' || role === 'technician';
+  document.getElementById('brief-sales-morn-wrap').style.display = showSales ? '' : 'none';
+  document.getElementById('brief-sales-eve-wrap').style.display  = showSales ? '' : 'none';
+  document.getElementById('brief-svc-morn-wrap').style.display   = showSvc   ? '' : 'none';
+  document.getElementById('brief-svc-eve-wrap').style.display    = showSvc   ? '' : 'none';
+
+  // Collapse to single column if only one type shown
+  document.getElementById('briefGrid').style.gridTemplateColumns =
+    (showSales && showSvc) ? '' : '1fr';
+
+  generateAndRenderBriefings();
+  document.getElementById('briefingModal').classList.add('open');
+}
+
+function closeBriefingModal() {
+  document.getElementById('briefingModal').classList.remove('open');
+}
+
+function generateAndRenderBriefings() {
+  const b = generateBriefings();
+  document.getElementById('brief-sales-morn').value = b.salesMorning;
+  document.getElementById('brief-sales-eve').value  = b.salesEvening;
+  document.getElementById('brief-svc-morn').value   = b.techMorning;
+  document.getElementById('brief-svc-eve').value    = b.techEvening;
+}
+
+function copyBrief(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = orig; btn.style.borderColor = ''; btn.style.color = ''; }, 2000);
+  });
+}
+
+// ════════════════════════════════════════════════
 // SERVICE REPORT MODAL
 // ════════════════════════════════════════════════
 function openSvcModal(c, breakdownId) {
@@ -3441,7 +3658,9 @@ function applyRoleVisibility() {
     if (role === 'technician') {
       const show = new Set(['dash', 'assign', 'breakdowns']);
       tabs.forEach(t => { t.style.display = show.has(t.dataset.tab) ? '' : 'none'; });
-      adminEls.forEach(el => el.style.display = 'none');  // hide payment filter, export, print
+      adminEls.forEach(el => el.style.display = 'none');
+      // Hide any elements marked data-role-hide="technician"
+      document.querySelectorAll('[data-role-hide="technician"]').forEach(el => el.style.display = 'none');
       if (banner) {
         banner.style.display = '';
         banner.textContent = '🔧 Service Mode — sorted by service due date';
