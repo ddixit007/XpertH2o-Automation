@@ -777,6 +777,10 @@ tr.area-foot td{background:#f5f5f5;font-weight:700;font-size:12px;color:var(--mu
 
   <!-- TAB 6: Sales Pipeline -->
   <div class="pane" id="pane-sales" data-pane="sales">
+    <div id="salesBriefBar" style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span id="salesBriefSummary" style="font-size:13px;font-weight:700;color:#b45309"></span>
+      <button class="btn-sm" style="background:#f59e0b;color:#fff;border-color:#f59e0b" onclick="copySalesMorning()">📋 Copy Today's Follow-ups</button>
+    </div>
     <div class="summary-bar" id="salesSummary"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div class="sales-filter-row" style="display:flex;gap:6px;flex-wrap:wrap">
@@ -2972,6 +2976,17 @@ function renderSales() {
     <div class="pill pill-amber">${overdueCount} Overdue Follow-up</div>
     <div class="pill pill-green">${wonMonth} Won This Month</div>`;
 
+  // Sales brief bar
+  const salesBriefEl = document.getElementById('salesBriefSummary');
+  if (salesBriefEl) {
+    const todayISO    = getTodayISO();
+    const tomorrowISO = getTomorrowISO();
+    const todayCount    = openLeads.filter(l => l.next_followup_date === todayISO).length;
+    const overdueCount2 = openLeads.filter(l => l.next_followup_date && l.next_followup_date < todayISO).length;
+    const tomorrowCount = openLeads.filter(l => l.next_followup_date === tomorrowISO).length;
+    salesBriefEl.textContent = `🔥 Aaj: ${todayCount} follow-ups · Overdue: ${overdueCount2} · Kal: ${tomorrowCount}`;
+  }
+
   // Filter (start from role-filtered set)
   let list = [..._myLeads];
   if (_salesFilter === 'open')    list = list.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost');
@@ -3271,6 +3286,12 @@ function copyTechMorning() {
   const b = generateBriefings();
   navigator.clipboard.writeText(b.techMorning).then(() => {
     showToast('📋 Aaj ki schedule copy ho gayi');
+  });
+}
+function copySalesMorning() {
+  const b = generateBriefings();
+  navigator.clipboard.writeText(b.salesMorning).then(() => {
+    showToast('📋 Aaj ke follow-ups copy ho gaye');
   });
 }
 
